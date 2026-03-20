@@ -2,13 +2,14 @@ import { Router } from "express";
 import * as reportController from "../controllers/reportController";
 import { authenticate } from "../middleware/auth";
 import { noIpLogging } from "../middleware/noIpLogging";
+import { anonymousLimiter } from "../middleware/rateLimiter";
 import { validate } from "../middleware/validate";
 import { createReportMetadataSchema, enrichReportMetadataSchema, updateReportStatusSchema } from "../types/schemas";
 
 const router = Router();
 
-// Anonymous endpoint — no auth, no IP logging
-router.post("/reports/metadata", noIpLogging, validate(createReportMetadataSchema), reportController.createMetadata);
+// Anonymous endpoint — no auth, no IP logging, rate limited
+router.post("/reports/metadata", anonymousLimiter, noIpLogging, validate(createReportMetadataSchema), reportController.createMetadata);
 
 // Dashboard endpoints require auth
 router.get("/reports/metadata", authenticate, reportController.listMetadata);

@@ -2,6 +2,7 @@ import { Router } from "express";
 import * as surveyController from "../controllers/surveyController";
 import { authenticate } from "../middleware/auth";
 import { noIpLogging } from "../middleware/noIpLogging";
+import { anonymousLimiter } from "../middleware/rateLimiter";
 import { validate } from "../middleware/validate";
 import {
   createSurveySchema,
@@ -20,9 +21,10 @@ router.delete("/surveys/:id", authenticate, surveyController.deleteSurvey);
 // Get survey schema — no auth needed for the mobile app to fetch active surveys
 router.get("/surveys/:id", surveyController.getSurveyById);
 
-// Submit response — anonymous, no auth, no IP logging
+// Submit response — anonymous, no auth, no IP logging, rate limited
 router.post(
   "/surveys/:id/responses",
+  anonymousLimiter,
   noIpLogging,
   validate(createSurveyResponseSchema),
   surveyController.submitResponse,
