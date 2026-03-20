@@ -134,10 +134,7 @@ export default function OnboardingPage() {
     }
   };
 
-  const inviteUrl = (token: string) => {
-    const base = typeof window !== "undefined" ? window.location.origin : "";
-    return `${base}/invite/${token}`;
-  };
+  const inviteCode = (token: string) => token;
 
   const bothConfigured = setupStatus.rpgConfigured && setupStatus.odvConfigured;
 
@@ -224,7 +221,7 @@ export default function OnboardingPage() {
                   subtitle="Gestisce le segnalazioni PdR 125 (molestie, discriminazioni)"
                   configured={setupStatus.rpgConfigured}
                   invite={rpgInvite}
-                  inviteUrl={rpgInvite ? inviteUrl(rpgInvite.token) : null}
+                  inviteCode={rpgInvite ? inviteCode(rpgInvite.token) : null}
                   onGenerate={() => handleGenerateInvite("rpg")}
                 />
 
@@ -234,7 +231,7 @@ export default function OnboardingPage() {
                   subtitle="Gestisce le segnalazioni Whistleblowing (D.Lgs. 24/2023)"
                   configured={setupStatus.odvConfigured}
                   invite={odvInvite}
-                  inviteUrl={odvInvite ? inviteUrl(odvInvite.token) : null}
+                  inviteCode={odvInvite ? inviteCode(odvInvite.token) : null}
                   onGenerate={() => handleGenerateInvite("odv")}
                 />
 
@@ -356,21 +353,21 @@ function SetupSection({
   subtitle,
   configured,
   invite,
-  inviteUrl,
+  inviteCode,
   onGenerate,
 }: {
   title: string;
   subtitle: string;
   configured: boolean;
   invite: InviteResponse | null;
-  inviteUrl: string | null;
+  inviteCode: string | null;
   onGenerate: () => void;
 }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    if (!inviteUrl) return;
-    await navigator.clipboard.writeText(inviteUrl);
+    if (!inviteCode) return;
+    await navigator.clipboard.writeText(inviteCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -396,15 +393,18 @@ function SetupSection({
           className="mt-3 w-full"
           onClick={onGenerate}
         >
-          Genera link di invito
+          Genera codice di invito
         </Button>
       )}
 
-      {!configured && invite && inviteUrl && (
+      {!configured && invite && inviteCode && (
         <div className="mt-3 flex flex-col gap-2">
+          <p className="text-xs text-muted-foreground">
+            Codice di invito — comunicalo al responsabile:
+          </p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 truncate rounded bg-muted px-2 py-1 text-xs font-mono">
-              {inviteUrl}
+            <code className="flex-1 rounded bg-muted px-3 py-2 text-center text-sm font-mono tracking-wider">
+              {inviteCode}
             </code>
             <Button variant="outline" size="sm" onClick={handleCopy}>
               {copied ? "Copiato!" : "Copia"}
@@ -415,7 +415,7 @@ function SetupSection({
             In attesa di configurazione dall{"'"}app...
           </div>
           <p className="text-xs text-muted-foreground">
-            Invia questo link al responsabile. Scansionerà il codice con l{"'"}app Themis Gestione.
+            Il responsabile inserirà questo codice nell{"'"}app Themis Gestione sul suo telefono.
           </p>
         </div>
       )}
