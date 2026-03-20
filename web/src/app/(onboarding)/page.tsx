@@ -30,9 +30,9 @@ import {
 } from "@/lib/api";
 
 const PLANS = [
-  { value: "starter", label: "Starter", description: "Fino a 50 dipendenti" },
-  { value: "professional", label: "Professional", description: "Fino a 500 dipendenti" },
-  { value: "enterprise", label: "Enterprise", description: "Dipendenti illimitati" },
+  { value: "STARTER", label: "Starter", description: "Fino a 50 dipendenti" },
+  { value: "PROFESSIONAL", label: "Professional", description: "Fino a 500 dipendenti" },
+  { value: "ENTERPRISE", label: "Enterprise", description: "Dipendenti illimitati" },
 ] as const;
 
 const TOTAL_STEPS = 3;
@@ -40,7 +40,7 @@ const TOTAL_STEPS = 3;
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [orgName, setOrgName] = useState("");
-  const [plan, setPlan] = useState("starter");
+  const [plan, setPlan] = useState("STARTER");
   const [orgId, setOrgId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
