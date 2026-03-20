@@ -179,11 +179,9 @@ export async function uploadKeys(
 
 export interface PairingQrResponse {
   orgId: string;
-  orgName: string;
   rpgPublicKey: string;
   odvPublicKey: string;
-  pairingToken: string;
-  serverUrl: string;
+  relayUrls: string[];
 }
 
 export async function generatePairingQr(
@@ -191,7 +189,7 @@ export async function generatePairingQr(
 ): Promise<PairingQrResponse> {
   const res = await fetch(`${API_URL}/organizations/${orgId}/pairing-qr`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
   });
   return handleResponse<PairingQrResponse>(res);
 }
@@ -199,6 +197,8 @@ export async function generatePairingQr(
 // ── Surveys ─────────────────────────────────────────────────────────────
 
 export type SurveyStatus = "DRAFT" | "ACTIVE" | "CLOSED" | "ARCHIVED";
+export type FormKind = "SURVEY" | "REPORT";
+export type FormChannel = "PDR125" | "WHISTLEBLOWING";
 
 export interface Survey {
   id: string;
@@ -207,6 +207,9 @@ export interface Survey {
   description: string | null;
   schema: Record<string, unknown>;
   status: SurveyStatus;
+  kind: FormKind;
+  channel: FormChannel | null;
+  icon: string | null;
   version: number;
   responseCount: number;
   createdAt: string;
@@ -218,6 +221,9 @@ export interface CreateSurveyData {
   title: string;
   description?: string;
   schema: Record<string, unknown>;
+  kind?: FormKind;
+  channel?: FormChannel;
+  icon?: string;
 }
 
 export interface UpdateSurveyData {
@@ -225,6 +231,9 @@ export interface UpdateSurveyData {
   description?: string;
   schema?: Record<string, unknown>;
   status?: SurveyStatus;
+  kind?: FormKind;
+  channel?: FormChannel | null;
+  icon?: string | null;
 }
 
 export interface AggregatedQuestion {
@@ -243,11 +252,34 @@ export interface SurveyResults {
   questions: AggregatedQuestion[];
 }
 
-export async function getSurveys(orgId: string): Promise<Survey[]> {
+export async function getSurveys(orgId: string, kind?: FormKind): Promise<Survey[]> {
   const params = new URLSearchParams({ org_id: orgId });
+  if (kind) params.set("kind", kind);
   const res = await fetch(`${API_URL}/surveys?${params.toString()}`, {
     headers: authHeaders(),
   });
+  return handleResponse<Survey[]>(res);
+}
+
+export async function getSurveyById(id: string): Promise<Survey> {
+  const res = await fetch(`${API_URL}/surveys/${id}`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<Survey>(res);
+}
+
+export async function importTemplate(
+  orgId: string,
+  templateId: "pdr125" | "wb",
+): Promise<Survey[]> {
+  const res = await fetch(
+    `${API_URL}/organizations/${orgId}/import-template`,
+    {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ templateId }),
+    },
+  );
   return handleResponse<Survey[]>(res);
 }
 
