@@ -6,7 +6,8 @@ import { createOrganizationSchema, updateKeysSchema } from "../types/schemas";
 
 const router = Router();
 
-router.post("/organizations", authenticate, validate(createOrganizationSchema), orgController.create);
+// Public — onboarding creates org before any user exists
+router.post("/organizations", validate(createOrganizationSchema), orgController.create);
 router.get("/organizations/:id", authenticate, orgController.getById);
 router.put("/organizations/:id/keys", authenticate, validate(updateKeysSchema), orgController.updateKeys);
 router.post("/organizations/:id/pairing-qr", authenticate, orgController.generatePairingQr);

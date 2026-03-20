@@ -130,7 +130,7 @@ export async function createInvite(
 ): Promise<InviteResponse> {
   const res = await fetch(`${API_URL}/invites`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ orgId, role }),
   });
   return handleResponse<InviteResponse>(res);
@@ -138,7 +138,7 @@ export async function createInvite(
 
 export async function getSetupStatus(orgId: string): Promise<SetupStatus> {
   const res = await fetch(`${API_URL}/organizations/${orgId}/setup-status`, {
-    headers: authHeaders(),
+    headers: { "Content-Type": "application/json" },
   });
   return handleResponse<SetupStatus>(res);
 }
