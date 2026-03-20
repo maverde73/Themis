@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: themis-postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-themis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-themis_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-themis}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-themis}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  relay:
+    image: dockurr/strfry:latest
+    container_name: themis-relay
+    restart: unless-stopped
+    ports:
+      - "${RELAY_PORT:-7777}:7777"
+    volumes:
+      - relaydata:/app/strfry-db
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  relaydata:

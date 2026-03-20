@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.dart_tool/
+.packages
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+server/src/generated/
+
+# Flutter
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Docker volumes
+pgdata/
+relaydata/
+
+# Claude
+.claude/

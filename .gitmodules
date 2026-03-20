@@ -1,0 +1,3 @@
+[submodule "styx"]
+	path = styx
+	url = git@github.com:maverde73/styx.git

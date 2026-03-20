@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  password  String
+  role      Role
+  orgId     String   @map("org_id") @db.Uuid
+  org       Organization @relation(fields: [orgId], references: [id])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Organization {
+  id                    String   @id @default(uuid()) @db.Uuid
+  name                  String
+  plan                  Plan     @default(STARTER)
+  rpgPublicKey          String?  @map("rpg_public_key")
+  odvPublicKey          String?  @map("odv_public_key")
+  relayUrls             Json     @default("[]") @map("relay_urls")
+  pairingQrData         Json?    @map("pairing_qr_data")
+  wbSlaAckDays          Int      @default(7) @map("wb_sla_ack_days")
+  wbSlaResponseDays     Int      @default(90) @map("wb_sla_response_days")
+  pdrSlaAckDays         Int      @default(3) @map("pdr_sla_ack_days")
+  pdrSlaResponseDays    Int      @default(45) @map("pdr_sla_response_days")
+  subscriptionExpires   DateTime? @map("subscription_expires")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  users           User[]
+  reportMetadata  ReportMetadata[]
+  surveys         Survey[]
+  surveyResponses SurveyResponse[]
+  escrowShares    EscrowShare[]
+
+  @@map("organizations")
+}
+
+model ReportMetadata {
+  id                  String        @id @default(uuid()) @db.Uuid
+  orgId               String        @map("org_id") @db.Uuid
+  org                 Organization  @relation(fields: [orgId], references: [id])
+  channel             ReportChannel
+  category            String?
+  status              ReportStatus  @default(RECEIVED)
+  identityRevealed    Boolean?      @map("identity_revealed")
+  hasAttachments      Boolean?      @map("has_attachments")
+  receivedAt          DateTime      @default(now()) @map("received_at")
+  acknowledgedAt      DateTime?     @map("acknowledged_at")
+  responseGivenAt     DateTime?     @map("response_given_at")
+  closedAt            DateTime?     @map("closed_at")
+  slaAckDeadline      DateTime?     @map("sla_ack_deadline")
+  slaResponseDeadline DateTime?     @map("sla_response_deadline")
+  slaAckMet           Boolean?      @map("sla_ack_met")
+  slaResponseMet      Boolean?      @map("sla_response_met")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  @@index([orgId, channel])
+  @@index([orgId, status])
+  @@index([slaAckDeadline])
+  @@index([slaResponseDeadline])
+  @@map("report_metadata")
+}
+
+model Survey {
+  id          String       @id @default(uuid()) @db.Uuid
+  orgId       String       @map("org_id") @db.Uuid
+  org         Organization @relation(fields: [orgId], references: [id])
+  title       String
+  description String?
+  schema      Json
+  version     Int          @default(1)
+  status      SurveyStatus @default(DRAFT)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  responses SurveyResponse[]
+
+  @@index([orgId, status])
+  @@map("surveys")
+}
+
+model SurveyResponse {
+  id          String       @id @default(uuid()) @db.Uuid
+  surveyId    String       @map("survey_id") @db.Uuid
+  survey      Survey       @relation(fields: [surveyId], references: [id])
+  orgId       String       @map("org_id") @db.Uuid
+  org         Organization @relation(fields: [orgId], references: [id])
+  answers     Json
+  version     Int
+  submittedAt DateTime     @default(now()) @map("submitted_at")
+
+  @@index([surveyId])
+  @@index([orgId, surveyId])
+  @@map("survey_responses")
+}
+
+model EscrowShare {
+  id           String       @id @default(uuid()) @db.Uuid
+  orgId        String       @map("org_id") @db.Uuid
+  org          Organization @relation(fields: [orgId], references: [id])
+  channel      ReportChannel
+  shareIndex   Int          @map("share_index")
+  encryptedShare String     @map("encrypted_share")
+  holderEmail  String       @map("holder_email")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  @@unique([orgId, channel, shareIndex])
+  @@map("escrow_shares")
+}
+
+enum Role {
+  RPG
+  ODV
+  ADMIN
+
+  @@map("role")
+}
+
+enum Plan {
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+
+  @@map("plan")
+}
+
+enum ReportChannel {
+  PDR125
+  WHISTLEBLOWING
+
+  @@map("report_channel")
+}
+
+enum ReportStatus {
+  RECEIVED
+  ACKNOWLEDGED
+  INVESTIGATING
+  RESPONSE_GIVEN
+  CLOSED_FOUNDED
+  CLOSED_UNFOUNDED
+  CLOSED_BAD_FAITH
+
+  @@map("report_status")
+}
+
+enum SurveyStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  ARCHIVED
+
+  @@map("survey_status")
+}
