@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:themis_survey/themis_survey.dart';
 
 import '../../../core/styx/styx_provider.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/survey_provider.dart';
 
 class SurveyFillPage extends ConsumerStatefulWidget {
@@ -64,7 +65,7 @@ class _SurveyFillPageState extends ConsumerState<SurveyFillPage> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Survey submitted successfully')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.surveySubmitted)),
       );
       context.pop();
     }
@@ -72,16 +73,18 @@ class _SurveyFillPageState extends ConsumerState<SurveyFillPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_checkingResponse) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Survey')),
+        appBar: AppBar(title: Text(l10n.surveys)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_alreadyResponded) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Survey')),
+        appBar: AppBar(title: Text(l10n.surveys)),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
@@ -94,14 +97,11 @@ class _SurveyFillPageState extends ConsumerState<SurveyFillPage> {
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'You have already submitted this survey.',
-                  textAlign: TextAlign.center,
-                ),
+                Text(l10n.alreadySubmitted, textAlign: TextAlign.center),
                 const SizedBox(height: 24),
                 FilledButton(
                   onPressed: () => context.pop(),
-                  child: const Text('Go back'),
+                  child: Text(l10n.goBack),
                 ),
               ],
             ),
@@ -115,17 +115,17 @@ class _SurveyFillPageState extends ConsumerState<SurveyFillPage> {
     return Scaffold(
       appBar: AppBar(
         title: surveyAsync.whenOrNull(data: (s) => Text(s.title)) ??
-            const Text('Survey'),
+            Text(l10n.surveys),
       ),
       body: surveyAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error: $err')),
+        error: (err, _) => Center(child: Text('${l10n.error}: $err')),
         data: (survey) {
           if (survey.status != 'ACTIVE') {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(32),
-                child: Text('This survey is no longer accepting responses.'),
+                padding: const EdgeInsets.all(32),
+                child: Text(l10n.surveyNotAccepting),
               ),
             );
           }
@@ -135,6 +135,7 @@ class _SurveyFillPageState extends ConsumerState<SurveyFillPage> {
             version: survey.version,
             schema: survey.schema,
             onSubmit: _handleSubmit,
+            submitLabel: l10n.submit,
           );
         },
       ),

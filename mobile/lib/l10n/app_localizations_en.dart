@@ -40,13 +40,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fillSurveySubtitle => 'Anonymous climate assessment';
 
   @override
-  String get noReportsYet => 'No reports yet';
-
-  @override
   String get secureChat => 'Secure Chat';
-
-  @override
-  String get sendMessage => 'Send message';
 
   @override
   String get typeMessage => 'Type a message...';
@@ -55,11 +49,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get e2eEncrypted => 'Messages are end-to-end encrypted';
 
   @override
+  String get noMessagesYet => 'No messages yet';
+
+  @override
+  String get sendFirstMessage =>
+      'Send the first message to start the conversation.';
+
+  @override
   String get confirmReceipt => 'Confirm receipt';
 
   @override
   String get confirmReceiptDescription =>
-      'This will send the legally required acknowledgment to the reporter (art. 5 D.Lgs. 24/2023).';
+      'This will send the legally required acknowledgment to the reporter (art. 5 D.Lgs. 24/2023).\n\nThe reporter will be informed that their report has been received and that they will receive a response within 3 months.';
 
   @override
   String get sendAcknowledgment => 'Send acknowledgment';
@@ -84,6 +85,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get submit => 'Submit';
+
+  @override
+  String get surveyNotAccepting =>
+      'This survey is no longer accepting responses.';
 
   @override
   String get error => 'Error';

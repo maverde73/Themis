@@ -40,13 +40,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get fillSurveySubtitle => 'Valutazione anonima del clima aziendale';
 
   @override
-  String get noReportsYet => 'Nessuna segnalazione';
-
-  @override
   String get secureChat => 'Chat sicura';
-
-  @override
-  String get sendMessage => 'Invia messaggio';
 
   @override
   String get typeMessage => 'Scrivi un messaggio...';
@@ -55,11 +49,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get e2eEncrypted => 'I messaggi sono crittografati end-to-end';
 
   @override
+  String get noMessagesYet => 'Nessun messaggio';
+
+  @override
+  String get sendFirstMessage =>
+      'Invia il primo messaggio per avviare la conversazione.';
+
+  @override
   String get confirmReceipt => 'Conferma ricezione';
 
   @override
   String get confirmReceiptDescription =>
-      'Questo invierà la conferma di ricezione prevista dalla legge (art. 5 D.Lgs. 24/2023).';
+      'Questo invierà la conferma di ricezione prevista dalla legge al segnalante (art. 5 D.Lgs. 24/2023).\n\nIl segnalante sarà informato che la segnalazione è stata ricevuta e che riceverà riscontro entro 3 mesi.';
 
   @override
   String get sendAcknowledgment => 'Invia conferma';
@@ -84,6 +85,10 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get submit => 'Invia';
+
+  @override
+  String get surveyNotAccepting =>
+      'Questo questionario non accetta più risposte.';
 
   @override
   String get error => 'Errore';

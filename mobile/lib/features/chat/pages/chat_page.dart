@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../providers/chat_provider.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
@@ -58,12 +59,12 @@ class _ChatPageState extends ConsumerState<ChatPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Secure Chat'),
+        title: Text(AppLocalizations.of(context)!.secureChat),
         actions: [
           if (widget.channel == 'WHISTLEBLOWING')
             IconButton(
               icon: const Icon(Icons.verified),
-              tooltip: 'Send WB acknowledgment',
+              tooltip: AppLocalizations.of(context)!.confirmReceipt,
               onPressed: () => _showAckDialog(context),
             ),
         ],
@@ -76,7 +77,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: Theme.of(context).colorScheme.primaryContainer,
             child: Text(
-              'Messages are end-to-end encrypted',
+              AppLocalizations.of(context)!.e2eEncrypted,
               style: TextStyle(
                 fontSize: 12,
                 color: Theme.of(context).colorScheme.onPrimaryContainer,
@@ -104,8 +105,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                             color: Theme.of(context).colorScheme.outline,
                           ),
                           const SizedBox(height: 16),
-                          const Text(
-                            'No messages yet.\nSend the first message to start the conversation.',
+                          Text(
+                            '${AppLocalizations.of(context)!.noMessagesYet}\n${AppLocalizations.of(context)!.sendFirstMessage}',
                             textAlign: TextAlign.center,
                           ),
                         ],
@@ -153,20 +154,16 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   }
 
   void _showAckDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Confirm receipt'),
-        content: const Text(
-          'This will send the legally required acknowledgment '
-          'to the reporter (art. 5 D.Lgs. 24/2023).\n\n'
-          'The reporter will be informed that their report has been '
-          'received and that they will receive a response within 3 months.',
-        ),
+        title: Text(l10n.confirmReceipt),
+        content: Text(l10n.confirmReceiptDescription),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -175,7 +172,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   .read(chatNotifierProvider(_params).notifier)
                   .sendAcknowledgment();
             },
-            child: const Text('Send acknowledgment'),
+            child: Text(l10n.sendAcknowledgment),
           ),
         ],
       ),
@@ -271,11 +268,11 @@ class _ChatInput extends StatelessWidget {
             Expanded(
               child: TextField(
                 controller: controller,
-                decoration: const InputDecoration(
-                  hintText: 'Type a message...',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  hintText: AppLocalizations.of(context)!.typeMessage,
+                  border: const OutlineInputBorder(),
                   contentPadding:
-                      EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 ),
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => onSend(),

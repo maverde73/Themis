@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../providers/survey_provider.dart';
 
 class SurveyListPage extends ConsumerWidget {
@@ -10,24 +11,25 @@ class SurveyListPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final surveysAsync = ref.watch(activeSurveysProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Surveys')),
+      appBar: AppBar(title: Text(l10n.surveys)),
       body: surveysAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text('Error loading surveys: $err'),
+            child: Text('${l10n.error}: $err'),
           ),
         ),
         data: (surveys) {
           if (surveys.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(32),
+                padding: const EdgeInsets.all(32),
                 child: Text(
-                  'No active surveys available.',
+                  l10n.noActiveSurveys,
                   textAlign: TextAlign.center,
                 ),
               ),

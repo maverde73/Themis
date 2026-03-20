@@ -193,11 +193,20 @@ export interface UpdateSurveyData {
   status?: SurveyStatus;
 }
 
+export interface AggregatedQuestion {
+  questionId: string;
+  type: string;
+  label: string;
+  responseCount: number;
+  data: Record<string, unknown> | null;
+}
+
 export interface SurveyResults {
   surveyId: string;
   title: string;
+  version: number;
   totalResponses: number;
-  responses: Record<string, unknown>[];
+  questions: AggregatedQuestion[];
 }
 
 export async function getSurveys(orgId: string): Promise<Survey[]> {

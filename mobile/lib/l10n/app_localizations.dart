@@ -158,23 +158,11 @@ abstract class AppLocalizations {
   /// **'Valutazione anonima del clima aziendale'**
   String get fillSurveySubtitle;
 
-  /// No description provided for @noReportsYet.
-  ///
-  /// In it, this message translates to:
-  /// **'Nessuna segnalazione'**
-  String get noReportsYet;
-
   /// No description provided for @secureChat.
   ///
   /// In it, this message translates to:
   /// **'Chat sicura'**
   String get secureChat;
-
-  /// No description provided for @sendMessage.
-  ///
-  /// In it, this message translates to:
-  /// **'Invia messaggio'**
-  String get sendMessage;
 
   /// No description provided for @typeMessage.
   ///
@@ -188,6 +176,18 @@ abstract class AppLocalizations {
   /// **'I messaggi sono crittografati end-to-end'**
   String get e2eEncrypted;
 
+  /// No description provided for @noMessagesYet.
+  ///
+  /// In it, this message translates to:
+  /// **'Nessun messaggio'**
+  String get noMessagesYet;
+
+  /// No description provided for @sendFirstMessage.
+  ///
+  /// In it, this message translates to:
+  /// **'Invia il primo messaggio per avviare la conversazione.'**
+  String get sendFirstMessage;
+
   /// No description provided for @confirmReceipt.
   ///
   /// In it, this message translates to:
@@ -197,7 +197,7 @@ abstract class AppLocalizations {
   /// No description provided for @confirmReceiptDescription.
   ///
   /// In it, this message translates to:
-  /// **'Questo invierà la conferma di ricezione prevista dalla legge (art. 5 D.Lgs. 24/2023).'**
+  /// **'Questo invierà la conferma di ricezione prevista dalla legge al segnalante (art. 5 D.Lgs. 24/2023).\n\nIl segnalante sarà informato che la segnalazione è stata ricevuta e che riceverà riscontro entro 3 mesi.'**
   String get confirmReceiptDescription;
 
   /// No description provided for @sendAcknowledgment.
@@ -247,6 +247,12 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'Invia'**
   String get submit;
+
+  /// No description provided for @surveyNotAccepting.
+  ///
+  /// In it, this message translates to:
+  /// **'Questo questionario non accetta più risposte.'**
+  String get surveyNotAccepting;
 
   /// No description provided for @error.
   ///

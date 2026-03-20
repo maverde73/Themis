@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../pairing/providers/pairing_provider.dart';
 import '../../survey/providers/survey_provider.dart';
 
@@ -11,12 +12,13 @@ class HomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pairingState = ref.watch(pairingNotifierProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Themis')),
+      appBar: AppBar(title: Text(l10n.appTitle)),
       body: pairingState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error: $err')),
+        error: (err, _) => Center(child: Text('${l10n.error}: $err')),
         data: (isPaired) => isPaired
             ? _PairedView()
             : _UnpairedView(),
@@ -29,6 +31,7 @@ class _UnpairedView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Center(
       child: Padding(
@@ -39,7 +42,7 @@ class _UnpairedView extends StatelessWidget {
             Icon(Icons.qr_code_scanner, size: 80, color: theme.colorScheme.primary),
             const SizedBox(height: 24),
             Text(
-              'Scan the QR code provided by your organization to get started.',
+              l10n.scanQrDescription,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyLarge,
             ),
@@ -47,7 +50,7 @@ class _UnpairedView extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => context.push('/pairing'),
               icon: const Icon(Icons.qr_code_scanner),
-              label: const Text('Scan QR Code'),
+              label: Text(l10n.scanQrCode),
             ),
           ],
         ),
@@ -60,6 +63,7 @@ class _PairedView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final surveysAsync = ref.watch(activeSurveysProvider);
     final hasSurveys = surveysAsync.whenOrNull(data: (s) => s.isNotEmpty) ?? false;
 
@@ -72,23 +76,23 @@ class _PairedView extends ConsumerWidget {
           Icon(Icons.verified_user, size: 64, color: theme.colorScheme.primary),
           const SizedBox(height: 16),
           Text(
-            'Choose the type of report',
+            l10n.chooseReportType,
             textAlign: TextAlign.center,
             style: theme.textTheme.headlineSmall,
           ),
           const SizedBox(height: 32),
           _ReportButton(
             icon: Icons.shield,
-            label: 'Report harassment',
-            subtitle: 'PdR 125 — Gender equality',
+            label: l10n.reportHarassment,
+            subtitle: l10n.reportHarassmentSubtitle,
             color: theme.colorScheme.primary,
             onPressed: () => context.push('/report-pdr'),
           ),
           const SizedBox(height: 16),
           _ReportButton(
             icon: Icons.gavel,
-            label: 'Report misconduct',
-            subtitle: 'Whistleblowing — D.Lgs. 24/2023',
+            label: l10n.reportMisconduct,
+            subtitle: l10n.reportMisconductSubtitle,
             color: theme.colorScheme.tertiary,
             onPressed: () => context.push('/report-wb'),
           ),
@@ -96,8 +100,8 @@ class _PairedView extends ConsumerWidget {
             const SizedBox(height: 16),
             _ReportButton(
               icon: Icons.assignment,
-              label: 'Fill survey',
-              subtitle: 'Anonymous climate assessment',
+              label: l10n.fillSurvey,
+              subtitle: l10n.fillSurveySubtitle,
               color: theme.colorScheme.secondary,
               onPressed: () => context.push('/surveys'),
             ),
