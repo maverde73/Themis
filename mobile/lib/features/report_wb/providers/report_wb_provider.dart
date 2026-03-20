@@ -5,6 +5,7 @@ import 'package:styx_crypto_core/styx_crypto_core.dart';
 
 import '../../../core/crypto/report_encryptor.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/styx/styx_provider.dart';
 import '../../pairing/providers/pairing_provider.dart';
 
 /// Whistleblowing report payload.
@@ -82,8 +83,16 @@ class ReportWbNotifier extends AsyncNotifier<void> {
         senderPublicKey: keyPair.publicKey,
       );
 
-      // TODO: Send encrypted envelope to Nostr relay
-      final _ = envelope.toJsonString();
+      // Send encrypted envelope to relay via Styx
+      final styx = ref.read(styxServiceProvider);
+      if (!styx.isInitialized) await styx.initialize();
+      await styx.sendEncrypted(
+        channel: 'WHISTLEBLOWING',
+        payload: {
+          'type': 'segnalazione_wb',
+          'envelope': envelope.toJson(),
+        },
+      );
 
       // Post metadata to server (ONLY metadata)
       final apiClient = ThemisApiClient();

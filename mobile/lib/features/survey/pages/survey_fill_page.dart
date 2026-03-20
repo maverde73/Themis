@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:themis_survey/themis_survey.dart';
 
-import '../../pairing/providers/pairing_provider.dart';
+import '../../../core/styx/styx_provider.dart';
 import '../providers/survey_provider.dart';
 
 class SurveyFillPage extends ConsumerStatefulWidget {
@@ -46,26 +46,17 @@ class _SurveyFillPageState extends ConsumerState<SurveyFillPage> {
 
     // 2. Send private answers via Styx E2E encryption
     if (submission.hasPrivateAnswers) {
-      final pairingData = await ref.read(pairingDataProvider.future);
-      if (pairingData != null) {
-        final bridge = SurveyStyxBridge(
-          sendTransaction: (eventType, payload, recipientKey) async {
-            // TODO: Wire to actual Styx sendTransaction once SovereignLedger
-            // is initialized in the app. For now, private answers are encrypted
-            // client-side and would be sent via the Styx relay.
-            debugPrint(
-              'Would send $eventType to $recipientKey via Styx (${payload.length} bytes)',
-            );
-          },
-        );
-
-        await bridge.sendPrivateAnswers(
-          surveyId: submission.surveyId,
-          version: submission.version,
-          privateAnswers: submission.privateAnswers,
-          recipientPublicKey: pairingData.rpgPublicKey,
-        );
-      }
+      final styx = ref.read(styxServiceProvider);
+      if (!styx.isInitialized) await styx.initialize();
+      await styx.sendEncrypted(
+        channel: 'PDR125',
+        payload: {
+          'type': 'survey_private_response',
+          'surveyId': submission.surveyId,
+          'version': submission.version,
+          'answers': submission.privateAnswers,
+        },
+      );
     }
 
     // 3. Mark as responded on this device

@@ -4,9 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/chat_provider.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
-  const ChatPage({super.key, required this.reportId});
+  const ChatPage({
+    super.key,
+    required this.reportId,
+    this.channel = 'WHISTLEBLOWING',
+  });
 
   final String reportId;
+  final String channel;
 
   @override
   ConsumerState<ChatPage> createState() => _ChatPageState();
@@ -14,10 +19,15 @@ class ChatPage extends ConsumerStatefulWidget {
 
 class _ChatPageState extends ConsumerState<ChatPage> {
   final _controller = TextEditingController();
+  final _scrollController = ScrollController();
+
+  ChatParams get _params =>
+      ChatParams(reportId: widget.reportId, channel: widget.channel);
 
   @override
   void dispose() {
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -26,36 +36,146 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     if (text.isEmpty) return;
 
     _controller.clear();
-    await ref.read(chatNotifierProvider(widget.reportId).notifier).sendMessage(text);
+    await ref.read(chatNotifierProvider(_params).notifier).sendMessage(text);
+    _scrollToBottom();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final chatState = ref.watch(chatNotifierProvider(widget.reportId));
+    final chatAsync = ref.watch(chatNotifierProvider(_params));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Secure Chat')),
+      appBar: AppBar(
+        title: const Text('Secure Chat'),
+        actions: [
+          if (widget.channel == 'WHISTLEBLOWING')
+            IconButton(
+              icon: const Icon(Icons.verified),
+              tooltip: 'Send WB acknowledgment',
+              onPressed: () => _showAckDialog(context),
+            ),
+        ],
+      ),
       body: Column(
         children: [
-          Expanded(
-            child: chatState.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-              data: (state) => state.messages.isEmpty
-                  ? const Center(child: Text('No messages yet'))
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: state.messages.length,
-                      itemBuilder: (context, index) {
-                        final msg = state.messages[index];
-                        return _MessageBubble(message: msg);
-                      },
-                    ),
+          // E2E encryption banner
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: Theme.of(context).colorScheme.primaryContainer,
+            child: Text(
+              'Messages are end-to-end encrypted',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
+
+          // Message list
+          Expanded(
+            child: chatAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Error: $e')),
+              data: (state) {
+                if (state.messages.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline,
+                            size: 48,
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'No messages yet.\nSend the first message to start the conversation.',
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: state.messages.length,
+                  itemBuilder: (context, index) {
+                    final msg = state.messages[index];
+                    return _MessageBubble(message: msg);
+                  },
+                );
+              },
+            ),
+          ),
+
+          // Error display
+          if (chatAsync.valueOrNull?.error != null)
+            Container(
+              padding: const EdgeInsets.all(8),
+              color: Theme.of(context).colorScheme.errorContainer,
+              child: Text(
+                chatAsync.valueOrNull!.error!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+
+          // Input
           _ChatInput(
             controller: _controller,
             onSend: _send,
+            isSending: chatAsync.valueOrNull?.isSending ?? false,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAckDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm receipt'),
+        content: const Text(
+          'This will send the legally required acknowledgment '
+          'to the reporter (art. 5 D.Lgs. 24/2023).\n\n'
+          'The reporter will be informed that their report has been '
+          'received and that they will receive a response within 3 months.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ref
+                  .read(chatNotifierProvider(_params).notifier)
+                  .sendAcknowledgment();
+            },
+            child: const Text('Send acknowledgment'),
           ),
         ],
       ),
@@ -70,7 +190,7 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMe = message.isFromReporter;
+    final isMe = message.isFromMe;
     final theme = Theme.of(context);
 
     return Align(
@@ -91,9 +211,11 @@ class _MessageBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              message.content,
+              message.text,
               style: TextStyle(
-                color: isMe ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
+                color: isMe
+                    ? theme.colorScheme.onPrimary
+                    : theme.colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 4),
@@ -113,15 +235,21 @@ class _MessageBubble extends StatelessWidget {
   }
 
   String _formatTime(DateTime dt) {
-    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    return '${dt.hour.toString().padLeft(2, '0')}:'
+        '${dt.minute.toString().padLeft(2, '0')}';
   }
 }
 
 class _ChatInput extends StatelessWidget {
-  const _ChatInput({required this.controller, required this.onSend});
+  const _ChatInput({
+    required this.controller,
+    required this.onSend,
+    required this.isSending,
+  });
 
   final TextEditingController controller;
   final VoidCallback onSend;
+  final bool isSending;
 
   @override
   Widget build(BuildContext context) {
@@ -146,17 +274,28 @@ class _ChatInput extends StatelessWidget {
                 decoration: const InputDecoration(
                   hintText: 'Type a message...',
                   border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 ),
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => onSend(),
+                enabled: !isSending,
               ),
             ),
             const SizedBox(width: 8),
-            IconButton.filled(
-              onPressed: onSend,
-              icon: const Icon(Icons.send),
-            ),
+            isSending
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : IconButton.filled(
+                    onPressed: onSend,
+                    icon: const Icon(Icons.send),
+                  ),
           ],
         ),
       ),

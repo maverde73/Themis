@@ -44,6 +44,8 @@ dependencies:
     path: ../styx/packages/styx
   styx_crypto_core:
     path: ../styx/packages/crypto_core
+  styx_transport:
+    path: ../styx/packages/transport
   themis_survey:
     path: ../styx/packages/themis_survey
 

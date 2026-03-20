@@ -545,7 +545,7 @@ packages:
     source: path
     version: "0.0.0"
   styx_transport:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: "../styx/packages/transport"
       relative: true

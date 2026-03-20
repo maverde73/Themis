@@ -162,6 +162,88 @@ export async function generatePairingQr(
   return handleResponse<PairingQrResponse>(res);
 }
 
+// ── Surveys ─────────────────────────────────────────────────────────────
+
+export type SurveyStatus = "DRAFT" | "ACTIVE" | "CLOSED" | "ARCHIVED";
+
+export interface Survey {
+  id: string;
+  orgId: string;
+  title: string;
+  description: string | null;
+  schema: Record<string, unknown>;
+  status: SurveyStatus;
+  version: number;
+  responseCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSurveyData {
+  orgId: string;
+  title: string;
+  description?: string;
+  schema: Record<string, unknown>;
+}
+
+export interface UpdateSurveyData {
+  title?: string;
+  description?: string;
+  schema?: Record<string, unknown>;
+  status?: SurveyStatus;
+}
+
+export interface SurveyResults {
+  surveyId: string;
+  title: string;
+  totalResponses: number;
+  responses: Record<string, unknown>[];
+}
+
+export async function getSurveys(orgId: string): Promise<Survey[]> {
+  const params = new URLSearchParams({ org_id: orgId });
+  const res = await fetch(`${API_URL}/surveys?${params.toString()}`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<Survey[]>(res);
+}
+
+export async function createSurvey(data: CreateSurveyData): Promise<Survey> {
+  const res = await fetch(`${API_URL}/surveys`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse<Survey>(res);
+}
+
+export async function updateSurvey(
+  id: string,
+  data: UpdateSurveyData,
+): Promise<Survey> {
+  const res = await fetch(`${API_URL}/surveys/${id}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse<Survey>(res);
+}
+
+export async function deleteSurvey(id: string): Promise<Survey> {
+  const res = await fetch(`${API_URL}/surveys/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return handleResponse<Survey>(res);
+}
+
+export async function getSurveyResults(id: string): Promise<SurveyResults> {
+  const res = await fetch(`${API_URL}/surveys/${id}/results`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<SurveyResults>(res);
+}
+
 // ── Analytics ───────────────────────────────────────────────────────────
 
 export interface AnalyticsData {

@@ -5,6 +5,7 @@ import 'package:styx_crypto_core/styx_crypto_core.dart';
 
 import '../../../core/crypto/report_encryptor.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/styx/styx_provider.dart';
 import '../../pairing/providers/pairing_provider.dart';
 
 /// PdR 125 report payload.
@@ -84,9 +85,16 @@ class ReportPdrNotifier extends AsyncNotifier<void> {
         senderPublicKey: keyPair.publicKey,
       );
 
-      // TODO: Send encrypted envelope to Nostr relay via Styx transport
-      // For now, log it (in production, this goes to the relay)
-      final _ = envelope.toJsonString();
+      // Send encrypted envelope to relay via Styx
+      final styx = ref.read(styxServiceProvider);
+      if (!styx.isInitialized) await styx.initialize();
+      await styx.sendEncrypted(
+        channel: 'PDR125',
+        payload: {
+          'type': 'segnalazione_pdr125',
+          'envelope': envelope.toJson(),
+        },
+      );
 
       // Post metadata to server (ONLY metadata, never content)
       final apiClient = ThemisApiClient();

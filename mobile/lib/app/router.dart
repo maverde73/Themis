@@ -18,6 +18,7 @@ final router = GoRouter(
       path: '/chat/:reportId',
       builder: (context, state) => ChatPage(
         reportId: state.pathParameters['reportId']!,
+        channel: state.uri.queryParameters['channel'] ?? 'WHISTLEBLOWING',
       ),
     ),
     GoRoute(path: '/surveys', builder: (context, state) => const SurveyListPage()),
