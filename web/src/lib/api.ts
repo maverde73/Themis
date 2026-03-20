@@ -109,6 +109,40 @@ export async function updateReportStatus(
   await handleResponse<void>(res);
 }
 
+// ── Invites ──────────────────────────────────────────────────────────────
+
+export interface InviteResponse {
+  id: string;
+  orgId: string;
+  role: string;
+  token: string;
+  expiresAt: string;
+}
+
+export interface SetupStatus {
+  rpgConfigured: boolean;
+  odvConfigured: boolean;
+}
+
+export async function createInvite(
+  orgId: string,
+  role: "rpg" | "odv",
+): Promise<InviteResponse> {
+  const res = await fetch(`${API_URL}/invites`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ orgId, role }),
+  });
+  return handleResponse<InviteResponse>(res);
+}
+
+export async function getSetupStatus(orgId: string): Promise<SetupStatus> {
+  const res = await fetch(`${API_URL}/organizations/${orgId}/setup-status`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<SetupStatus>(res);
+}
+
 // ── Onboarding ──────────────────────────────────────────────────────────
 
 export interface CreateOrganizationResponse {

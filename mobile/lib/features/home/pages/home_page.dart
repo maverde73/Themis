@@ -52,6 +52,12 @@ class _UnpairedView extends StatelessWidget {
               icon: const Icon(Icons.qr_code_scanner),
               label: Text(l10n.scanQrCode),
             ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () => context.push('/manager-setup'),
+              icon: const Icon(Icons.admin_panel_settings),
+              label: const Text('Sono un gestore (RPG/OdV)'),
+            ),
           ],
         ),
       ),

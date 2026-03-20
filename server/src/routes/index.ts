@@ -6,6 +6,7 @@ import reportsRouter from "./reports";
 import analyticsRouter from "./analytics";
 import surveysRouter from "./surveys";
 import escrowRouter from "./escrow";
+import invitesRouter from "./invites";
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use(reportsRouter);
 router.use(analyticsRouter);
 router.use(surveysRouter);
 router.use(escrowRouter);
+router.use(invitesRouter);
 
 export default router;

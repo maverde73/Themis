@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -21,95 +22,124 @@ import {
 } from "@/components/ui/select";
 import {
   createOrganization,
+  createInvite,
   uploadKeys,
-  generatePairingQr,
-  type PairingQrResponse,
+  getSetupStatus,
+  type InviteResponse,
+  type SetupStatus,
 } from "@/lib/api";
 
 const PLANS = [
-  {
-    value: "starter",
-    label: "Starter",
-    description: "Up to 50 employees",
-  },
-  {
-    value: "professional",
-    label: "Professional",
-    description: "Up to 500 employees",
-  },
-  {
-    value: "enterprise",
-    label: "Enterprise",
-    description: "Unlimited employees",
-  },
+  { value: "starter", label: "Starter", description: "Fino a 50 dipendenti" },
+  { value: "professional", label: "Professional", description: "Fino a 500 dipendenti" },
+  { value: "enterprise", label: "Enterprise", description: "Dipendenti illimitati" },
 ] as const;
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 3;
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [orgName, setOrgName] = useState("");
   const [plan, setPlan] = useState("starter");
-  const [rpgPublicKey, setRpgPublicKey] = useState("");
-  const [odvPublicKey, setOdvPublicKey] = useState("");
   const [orgId, setOrgId] = useState<string | null>(null);
-  const [qrData, setQrData] = useState<PairingQrResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canGoNext = (): boolean => {
-    switch (step) {
-      case 1:
-        return orgName.trim().length > 0;
-      case 2:
-        return rpgPublicKey.trim().length > 0 && odvPublicKey.trim().length > 0;
-      case 3:
-        return true;
-      default:
-        return false;
-    }
-  };
+  // Invite state
+  const [rpgInvite, setRpgInvite] = useState<InviteResponse | null>(null);
+  const [odvInvite, setOdvInvite] = useState<InviteResponse | null>(null);
+  const [setupStatus, setSetupStatus] = useState<SetupStatus>({
+    rpgConfigured: false,
+    odvConfigured: false,
+  });
 
-  const handleGenerateQr = async () => {
+  // Advanced mode
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [rpgKey, setRpgKey] = useState("");
+  const [odvKey, setOdvKey] = useState("");
+
+  // Polling
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => stopPolling();
+  }, [stopPolling]);
+
+  const startPolling = useCallback((id: string) => {
+    stopPolling();
+    pollRef.current = setInterval(async () => {
+      try {
+        const status = await getSetupStatus(id);
+        setSetupStatus(status);
+        if (status.rpgConfigured && status.odvConfigured) {
+          stopPolling();
+        }
+      } catch {
+        // Ignore polling errors
+      }
+    }, 5000);
+  }, [stopPolling]);
+
+  const handleCreateOrg = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Step 1: Create organization
       const org = await createOrganization(orgName.trim(), plan);
       setOrgId(org.id);
 
-      // Step 2: Upload keys
-      await uploadKeys(org.id, rpgPublicKey.trim(), odvPublicKey.trim());
+      // Store token for setup-status auth
+      // The createOrganization doesn't require auth, but setup-status does.
+      // For MVP, we'll use the org creator flow. In production this would
+      // be part of the registration + auto-login flow.
 
-      // Step 3: Generate QR pairing data
-      const pairing = await generatePairingQr(org.id);
-      setQrData(pairing);
-      setStep(4);
+      setStep(2);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unexpected error occurred",
-      );
+      setError(err instanceof Error ? err.message : "Errore imprevisto");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleNext = () => {
-    if (step === 3) {
-      handleGenerateQr();
-      return;
-    }
-    if (step < TOTAL_STEPS) {
-      setStep(step + 1);
+  const handleGenerateInvite = async (role: "rpg" | "odv") => {
+    if (!orgId) return;
+    setError(null);
+    try {
+      const invite = await createInvite(orgId, role);
+      if (role === "rpg") setRpgInvite(invite);
+      else setOdvInvite(invite);
+      startPolling(orgId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore generazione invito");
     }
   };
 
-  const handlePrevious = () => {
-    if (step > 1) {
-      setError(null);
-      setStep(step - 1);
+  const handleAdvancedUpload = async () => {
+    if (!orgId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await uploadKeys(orgId, rpgKey.trim(), odvKey.trim());
+      setSetupStatus({ rpgConfigured: true, odvConfigured: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore upload chiavi");
+    } finally {
+      setLoading(false);
     }
   };
+
+  const inviteUrl = (token: string) => {
+    const base = typeof window !== "undefined" ? window.location.origin : "";
+    return `${base}/invite/${token}`;
+  };
+
+  const bothConfigured = setupStatus.rpgConfigured && setupStatus.odvConfigured;
 
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
@@ -117,11 +147,11 @@ export default function OnboardingPage() {
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold tracking-tight">Themis</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Zero-knowledge compliance platform
+            Piattaforma zero-knowledge per compliance
           </p>
         </div>
 
-        {/* Progress indicator */}
+        {/* Progress */}
         <div className="mb-6 flex items-center justify-center gap-2">
           {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((s) => (
             <div
@@ -136,19 +166,14 @@ export default function OnboardingPage() {
         <Card>
           <CardHeader>
             <CardTitle>
-              {step === 1 && "Organization details"}
-              {step === 2 && "Public keys"}
-              {step === 3 && "Generate pairing QR"}
-              {step === 4 && "Pairing data"}
+              {step === 1 && "Registra la tua organizzazione"}
+              {step === 2 && "Configura i responsabili"}
+              {step === 3 && "Configurazione completata"}
             </CardTitle>
             <CardDescription>
-              {step === 1 && "Enter your organization name and select a plan."}
-              {step === 2 &&
-                "Provide the public keys for the RPG and OdV channels."}
-              {step === 3 &&
-                "Review your setup and generate the pairing QR code data."}
-              {step === 4 &&
-                "Share this pairing data with the mobile app to complete setup."}
+              {step === 1 && "Inserisci il nome dell'organizzazione e seleziona un piano."}
+              {step === 2 && "Invita la RPG e l'OdV a configurare l'app sui loro dispositivi."}
+              {step === 3 && "La piattaforma è pronta. I dipendenti possono iniziare a inviare segnalazioni."}
             </CardDescription>
           </CardHeader>
 
@@ -159,24 +184,24 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            {/* Step 1: Organization info */}
+            {/* Step 1: Org info */}
             {step === 1 && (
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="org-name">Organization name</Label>
+                  <Label htmlFor="org-name">Nome organizzazione</Label>
                   <Input
                     id="org-name"
-                    placeholder="Acme Corp"
+                    placeholder="Nexa Data S.r.l."
                     value={orgName}
                     onChange={(e) => setOrgName(e.target.value)}
                     autoFocus
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="plan">Plan</Label>
+                  <Label htmlFor="plan">Piano</Label>
                   <Select value={plan} onValueChange={(v) => { if (v) setPlan(v); }}>
                     <SelectTrigger id="plan" className="w-full">
-                      <SelectValue placeholder="Select a plan" />
+                      <SelectValue placeholder="Seleziona un piano" />
                     </SelectTrigger>
                     <SelectContent>
                       {PLANS.map((p) => (
@@ -190,81 +215,94 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            {/* Step 2: Public keys */}
+            {/* Step 2: Invite flow */}
             {step === 2 && (
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="rpg-key">RPG public key</Label>
-                  <Input
-                    id="rpg-key"
-                    placeholder="npub1... or hex public key"
-                    value={rpgPublicKey}
-                    onChange={(e) => setRpgPublicKey(e.target.value)}
-                    autoFocus
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Public key for the PdR 125 channel (abuse/harassment
-                    reports).
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="odv-key">OdV public key</Label>
-                  <Input
-                    id="odv-key"
-                    placeholder="npub1... or hex public key"
-                    value={odvPublicKey}
-                    onChange={(e) => setOdvPublicKey(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Public key for the Whistleblowing channel (D.Lgs. 24/2023).
-                  </p>
+              <div className="flex flex-col gap-6">
+                {/* RPG Setup */}
+                <SetupSection
+                  title="RPG — Responsabile Parità di Genere"
+                  subtitle="Gestisce le segnalazioni PdR 125 (molestie, discriminazioni)"
+                  configured={setupStatus.rpgConfigured}
+                  invite={rpgInvite}
+                  inviteUrl={rpgInvite ? inviteUrl(rpgInvite.token) : null}
+                  onGenerate={() => handleGenerateInvite("rpg")}
+                />
+
+                {/* OdV Setup */}
+                <SetupSection
+                  title="OdV — Organismo di Vigilanza"
+                  subtitle="Gestisce le segnalazioni Whistleblowing (D.Lgs. 24/2023)"
+                  configured={setupStatus.odvConfigured}
+                  invite={odvInvite}
+                  inviteUrl={odvInvite ? inviteUrl(odvInvite.token) : null}
+                  onGenerate={() => handleGenerateInvite("odv")}
+                />
+
+                {/* Advanced mode toggle */}
+                <div className="border-t pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="text-xs text-muted-foreground hover:underline"
+                  >
+                    {showAdvanced ? "Nascondi" : "Mostra"} modalità avanzata (sviluppatori)
+                  </button>
+
+                  {showAdvanced && (
+                    <div className="mt-3 flex flex-col gap-3 rounded-lg border border-dashed p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Inserimento manuale delle chiavi pubbliche (solo per testing/sviluppo)
+                      </p>
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="rpg-key" className="text-xs">RPG public key (hex)</Label>
+                        <Input
+                          id="rpg-key"
+                          placeholder="Ed25519 hex..."
+                          value={rpgKey}
+                          onChange={(e) => setRpgKey(e.target.value)}
+                          className="font-mono text-xs"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="odv-key" className="text-xs">OdV public key (hex)</Label>
+                        <Input
+                          id="odv-key"
+                          placeholder="Ed25519 hex..."
+                          value={odvKey}
+                          onChange={(e) => setOdvKey(e.target.value)}
+                          className="font-mono text-xs"
+                        />
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAdvancedUpload}
+                        disabled={!rpgKey.trim() || !odvKey.trim() || loading}
+                      >
+                        Carica chiavi manualmente
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Step 3: Review and generate */}
+            {/* Step 3: Done */}
             {step === 3 && (
-              <div className="flex flex-col gap-3">
-                <div className="rounded-lg bg-muted p-3">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Organization
-                  </p>
-                  <p className="text-sm">{orgName}</p>
+              <div className="flex flex-col items-center gap-4 py-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+                  <span className="text-3xl">&#10003;</span>
                 </div>
-                <div className="rounded-lg bg-muted p-3">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Plan
+                <div className="text-center">
+                  <p className="font-medium">{orgName}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Entrambi i canali sono configurati. Genera il QR code per i dipendenti
+                    dalla sezione impostazioni.
                   </p>
-                  <p className="text-sm capitalize">{plan}</p>
                 </div>
-                <div className="rounded-lg bg-muted p-3">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    RPG public key
-                  </p>
-                  <p className="truncate text-sm font-mono">{rpgPublicKey}</p>
-                </div>
-                <div className="rounded-lg bg-muted p-3">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    OdV public key
-                  </p>
-                  <p className="truncate text-sm font-mono">{odvPublicKey}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: QR data display */}
-            {step === 4 && qrData && (
-              <div className="flex flex-col gap-4">
-                <p className="text-sm text-muted-foreground">
-                  The QR image rendering will be available in a future update.
-                  Below is the pairing data in JSON format.
-                </p>
-                <pre className="overflow-x-auto rounded-lg bg-muted p-4 text-xs font-mono">
-                  {JSON.stringify(qrData, null, 2)}
-                </pre>
                 {orgId && (
                   <p className="text-xs text-muted-foreground">
-                    Organization ID: <code className="font-mono">{orgId}</code>
+                    ID organizzazione: <code className="font-mono">{orgId}</code>
                   </p>
                 )}
               </div>
@@ -272,28 +310,115 @@ export default function OnboardingPage() {
           </CardContent>
 
           <CardFooter className="flex justify-between">
-            {step > 1 && step < 4 ? (
-              <Button variant="outline" onClick={handlePrevious}>
-                Previous
-              </Button>
-            ) : (
-              <div />
-            )}
-            {step < 4 && (
+            {step === 1 && <div />}
+            {step === 1 && (
               <Button
-                onClick={handleNext}
-                disabled={!canGoNext() || loading}
+                onClick={handleCreateOrg}
+                disabled={!orgName.trim() || loading}
               >
-                {loading
-                  ? "Processing..."
-                  : step === 3
-                    ? "Generate QR"
-                    : "Next"}
+                {loading ? "Creazione..." : "Avanti"}
               </Button>
+            )}
+
+            {step === 2 && (
+              <>
+                <Button variant="outline" onClick={() => setStep(1)}>
+                  Indietro
+                </Button>
+                <Button
+                  onClick={() => setStep(3)}
+                  disabled={!bothConfigured}
+                >
+                  {bothConfigured ? "Avanti" : "In attesa della configurazione..."}
+                </Button>
+              </>
+            )}
+
+            {step === 3 && (
+              <>
+                <div />
+                <Button onClick={() => window.location.href = "/login"}>
+                  Vai al login
+                </Button>
+              </>
             )}
           </CardFooter>
         </Card>
       </div>
     </main>
+  );
+}
+
+// ── Setup section component ──────────────────────────────────────────────
+
+function SetupSection({
+  title,
+  subtitle,
+  configured,
+  invite,
+  inviteUrl,
+  onGenerate,
+}: {
+  title: string;
+  subtitle: string;
+  configured: boolean;
+  invite: InviteResponse | null;
+  inviteUrl: string | null;
+  onGenerate: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    if (!inviteUrl) return;
+    await navigator.clipboard.writeText(inviteUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="rounded-lg border p-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="font-medium text-sm">{title}</p>
+          <p className="text-xs text-muted-foreground">{subtitle}</p>
+        </div>
+        {configured ? (
+          <Badge variant="default" className="bg-green-600">Configurato</Badge>
+        ) : (
+          <Badge variant="secondary">In attesa</Badge>
+        )}
+      </div>
+
+      {!configured && !invite && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3 w-full"
+          onClick={onGenerate}
+        >
+          Genera link di invito
+        </Button>
+      )}
+
+      {!configured && invite && inviteUrl && (
+        <div className="mt-3 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <code className="flex-1 truncate rounded bg-muted px-2 py-1 text-xs font-mono">
+              {inviteUrl}
+            </code>
+            <Button variant="outline" size="sm" onClick={handleCopy}>
+              {copied ? "Copiato!" : "Copia"}
+            </Button>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-yellow-500" />
+            In attesa di configurazione dall{"'"}app...
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Invia questo link al responsabile. Scansionerà il codice con l{"'"}app Themis Gestione.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
