@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as surveyController from "../controllers/surveyController";
-import { authenticate } from "../middleware/auth";
+import { authenticate, authenticateAnonymous } from "../middleware/auth";
 import { noIpLogging } from "../middleware/noIpLogging";
 import { anonymousLimiter } from "../middleware/rateLimiter";
 import { validate } from "../middleware/validate";
@@ -9,6 +9,8 @@ import {
   updateSurveySchema,
   createSurveyResponseSchema,
 } from "../types/surveySchemas";
+import { applyThemeSchema } from "../types/themeSchemas";
+import * as themeController from "../controllers/themeController";
 
 const router = Router();
 
@@ -18,12 +20,17 @@ router.get("/surveys", authenticate, surveyController.listSurveys);
 router.put("/surveys/:id", authenticate, validate(updateSurveySchema), surveyController.updateSurvey);
 router.delete("/surveys/:id", authenticate, surveyController.deleteSurvey);
 
-// Get survey schema — no auth needed for the mobile app to fetch active surveys
-router.get("/surveys/:id", surveyController.getSurveyById);
+// Apply/remove theme from survey
+router.put("/surveys/:id/theme", authenticate, validate(applyThemeSchema), themeController.applyThemeToSurvey);
 
-// Submit response — anonymous, no auth, no IP logging, rate limited
+// Mobile endpoints — require anonymous or user token
+router.get("/surveys/active", authenticateAnonymous, surveyController.listActiveSurveys);
+router.get("/surveys/:id", authenticateAnonymous, surveyController.getSurveyById);
+
+// Submit response — anonymous token + no IP logging + rate limited
 router.post(
   "/surveys/:id/responses",
+  authenticateAnonymous,
   anonymousLimiter,
   noIpLogging,
   validate(createSurveyResponseSchema),

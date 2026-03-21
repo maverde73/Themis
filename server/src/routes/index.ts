@@ -7,6 +7,8 @@ import analyticsRouter from "./analytics";
 import surveysRouter from "./surveys";
 import escrowRouter from "./escrow";
 import invitesRouter from "./invites";
+import aiRouter from "./ai";
+import themesRouter from "./themes";
 
 const router = Router();
 
@@ -18,5 +20,7 @@ router.use(analyticsRouter);
 router.use(surveysRouter);
 router.use(escrowRouter);
 router.use(invitesRouter);
+router.use(aiRouter);
+router.use(themesRouter);
 
 export default router;

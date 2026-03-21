@@ -17,6 +17,8 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  surveyThemes SurveyTheme[]
+
   @@map("users")
 }
 
@@ -28,6 +30,7 @@ model Organization {
   odvPublicKey          String?  @map("odv_public_key")
   relayUrls             Json     @default("[]") @map("relay_urls")
   pairingQrData         Json?    @map("pairing_qr_data")
+  pairingSecret         String?  @map("pairing_secret")
   wbSlaAckDays          Int      @default(7) @map("wb_sla_ack_days")
   wbSlaResponseDays     Int      @default(90) @map("wb_sla_response_days")
   pdrSlaAckDays         Int      @default(3) @map("pdr_sla_ack_days")
@@ -42,6 +45,7 @@ model Organization {
   surveyResponses SurveyResponse[]
   escrowShares    EscrowShare[]
   invites         Invite[]
+  surveyThemes    SurveyTheme[]
 
   @@map("organizations")
 }
@@ -96,6 +100,10 @@ model Survey {
   schema      Json
   version     Int          @default(1)
   status      SurveyStatus @default(DRAFT)
+  channel     String?
+  icon        String?
+  themeId     String?      @map("theme_id") @db.Uuid
+  theme       SurveyTheme? @relation(fields: [themeId], references: [id], onDelete: SetNull)
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
@@ -176,4 +184,40 @@ enum SurveyStatus {
   ARCHIVED
 
   @@map("survey_status")
+}
+
+model SurveyTheme {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  config      Json
+  isBuiltin   Boolean      @default(false) @map("is_builtin")
+  isPublic    Boolean      @default(false) @map("is_public")
+  clonedFrom  String?      @map("cloned_from") @db.Uuid
+  createdBy   String?      @map("created_by") @db.Uuid
+  creator     User?        @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  orgId       String?      @map("org_id") @db.Uuid
+  org         Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  surveys     Survey[]
+
+  @@index([orgId])
+  @@map("survey_themes")
+}
+
+model FormTemplate {
+  id                 String   @id @default(uuid()) @db.Uuid
+  slug               String   @unique
+  title              String
+  description        String?
+  schema             Json
+  channel            String?
+  icon               String?
+  catalogTitle       Json
+  catalogDescription Json     @map("catalog_description")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@map("form_templates")
 }

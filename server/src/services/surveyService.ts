@@ -19,7 +19,11 @@ export async function createSurvey(input: CreateSurveyInput) {
       schema: JSON.parse(JSON.stringify(input.schema)),
       version: 1,
       status: "DRAFT",
+      channel: input.channel ?? null,
+      icon: input.icon ?? null,
+      themeId: input.themeId ?? null,
     },
+    include: { theme: { select: { id: true, name: true, config: true } } },
   });
 }
 
@@ -32,11 +36,15 @@ export async function listSurveys(orgId: string, status?: string) {
         : { not: "ARCHIVED" },
     },
     orderBy: { createdAt: "desc" },
+    include: { theme: { select: { id: true, name: true, config: true } } },
   });
 }
 
 export async function getSurveyById(id: string) {
-  const survey = await prisma.survey.findUnique({ where: { id } });
+  const survey = await prisma.survey.findUnique({
+    where: { id },
+    include: { theme: { select: { id: true, name: true, config: true } } },
+  });
   if (!survey) throw new AppError(404, "Survey not found");
   return survey;
 }
@@ -54,6 +62,9 @@ export async function updateSurvey(id: string, input: UpdateSurveyInput) {
   if (input.title !== undefined) updates.title = input.title;
   if (input.description !== undefined) updates.description = input.description;
   if (input.status !== undefined) updates.status = input.status;
+  if (input.channel !== undefined) updates.channel = input.channel;
+  if (input.icon !== undefined) updates.icon = input.icon;
+  if (input.themeId !== undefined) updates.themeId = input.themeId;
 
   // If schema changes, increment version
   if (input.schema !== undefined) {
@@ -68,6 +79,7 @@ export async function updateSurvey(id: string, input: UpdateSurveyInput) {
   return prisma.survey.update({
     where: { id },
     data: updates,
+    include: { theme: { select: { id: true, name: true, config: true } } },
   });
 }
 
