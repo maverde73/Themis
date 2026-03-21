@@ -198,286 +198,412 @@ function ThemeEditContent() {
         />
       </div>
 
-      <div className="flex flex-col gap-6 lg:flex-row">
-        {/* Section tabs */}
-        <div className="flex gap-1 overflow-x-auto lg:w-48 lg:flex-col lg:gap-0.5">
-          {SECTIONS.map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => setActiveSection(s.key)}
-              className={`whitespace-nowrap rounded-md px-3 py-2 text-left text-sm font-medium transition-colors ${
-                activeSection === s.key
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent"
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+      <div className="flex flex-col gap-6 xl:flex-row">
+        {/* Left: tabs + section content */}
+        <div className="flex min-w-0 flex-1 flex-col gap-6 lg:flex-row">
+          {/* Section tabs */}
+          <div className="flex gap-1 overflow-x-auto lg:w-44 lg:shrink-0 lg:flex-col lg:gap-0.5">
+            {SECTIONS.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setActiveSection(s.key)}
+                className={`whitespace-nowrap rounded-md px-3 py-2 text-left text-sm font-medium transition-colors ${
+                  activeSection === s.key
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
 
-        {/* Section content */}
-        <div className="flex-1">
-          {activeSection === "colors" && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Colori</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {(Object.keys(COLOR_LABELS) as (keyof ThemeColors)[]).map((key) => (
-                  <div key={key} className="flex flex-col gap-1.5">
-                    <Label className="text-xs">{COLOR_LABELS[key]}</Label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={config.colors[key].startsWith("rgba") ? "#000000" : config.colors[key]}
-                        onChange={(e) => updateColors(key, e.target.value)}
-                        className="h-8 w-8 cursor-pointer rounded border"
-                      />
-                      <Input
-                        value={config.colors[key]}
-                        onChange={(e) => updateColors(key, e.target.value)}
-                        className="flex-1 font-mono text-xs"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {activeSection === "typography" && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Tipografia</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <Label className="text-xs">Font famiglia</Label>
-                    <select
-                      value={config.typography.fontFamily}
-                      onChange={(e) => updateTypography("fontFamily", e.target.value)}
-                      className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                    >
-                      {FONT_FAMILIES.map((f) => (
-                        <option key={f} value={f}>
-                          {f.split(",")[0].replace(/'/g, "")}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label className="text-xs">Font heading</Label>
-                    <select
-                      value={config.typography.fontFamilyHeading ?? config.typography.fontFamily}
-                      onChange={(e) => updateTypography("fontFamilyHeading", e.target.value)}
-                      className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                    >
-                      {FONT_FAMILIES.map((f) => (
-                        <option key={f} value={f}>
-                          {f.split(",")[0].replace(/'/g, "")}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-3">
-                  {([
-                    ["titleSize", "Dim. titolo"],
-                    ["titleWeight", "Peso titolo"],
-                    ["subtitleSize", "Dim. sottotitolo"],
-                    ["labelSize", "Dim. etichetta"],
-                    ["labelWeight", "Peso etichetta"],
-                    ["bodySize", "Dim. corpo"],
-                    ["lineHeight", "Interlinea"],
-                  ] as const).map(([key, label]) => (
+          {/* Section content */}
+          <div className="min-w-0 flex-1">
+            {activeSection === "colors" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Colori</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 sm:grid-cols-2">
+                  {(Object.keys(COLOR_LABELS) as (keyof ThemeColors)[]).map((key) => (
                     <div key={key} className="flex flex-col gap-1.5">
-                      <Label className="text-xs">{label}</Label>
-                      <Input
-                        value={String(config.typography[key] ?? "")}
-                        onChange={(e) => updateTypography(key, e.target.value)}
-                        className="font-mono text-xs"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {activeSection === "spacing" && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Spaziatura</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {([
-                  ["formMaxWidth", "Larghezza max"],
-                  ["formPadding", "Padding form"],
-                  ["formPaddingMobile", "Padding mobile"],
-                  ["sectionGap", "Gap sezioni"],
-                  ["fieldGap", "Gap campi"],
-                  ["borderRadius", "Border radius"],
-                  ["inputPadding", "Padding input"],
-                  ["inputBorderRadius", "Radius input"],
-                  ["inputBorderWidth", "Bordo input"],
-                ] as const).map(([key, label]) => (
-                  <div key={key} className="flex flex-col gap-1.5">
-                    <Label className="text-xs">{label}</Label>
-                    <Input
-                      value={config.spacing[key]}
-                      onChange={(e) => updateSpacing(key, e.target.value)}
-                      className="font-mono text-xs"
-                    />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {activeSection === "buttons" && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Bottoni</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {([
-                    ["backgroundColor", "Sfondo"],
-                    ["textColor", "Testo"],
-                    ["hoverBackgroundColor", "Sfondo hover"],
-                  ] as const).map(([key, label]) => (
-                    <div key={key} className="flex flex-col gap-1.5">
-                      <Label className="text-xs">{label}</Label>
+                      <Label className="text-xs">{COLOR_LABELS[key]}</Label>
                       <div className="flex items-center gap-2">
                         <input
                           type="color"
-                          value={config.buttons[key] as string}
-                          onChange={(e) => updateButtons(key, e.target.value)}
+                          value={config.colors[key].startsWith("rgba") ? "#000000" : config.colors[key]}
+                          onChange={(e) => updateColors(key, e.target.value)}
                           className="h-8 w-8 cursor-pointer rounded border"
                         />
                         <Input
-                          value={config.buttons[key] as string}
-                          onChange={(e) => updateButtons(key, e.target.value)}
+                          value={config.colors[key]}
+                          onChange={(e) => updateColors(key, e.target.value)}
                           className="flex-1 font-mono text-xs"
                         />
                       </div>
                     </div>
                   ))}
-                </div>
-                <div className="grid gap-4 sm:grid-cols-3">
+                </CardContent>
+              </Card>
+            )}
+
+            {activeSection === "typography" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Tipografia</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-xs">Font famiglia</Label>
+                      <select
+                        value={config.typography.fontFamily}
+                        onChange={(e) => updateTypography("fontFamily", e.target.value)}
+                        className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        {FONT_FAMILIES.map((f) => (
+                          <option key={f} value={f}>
+                            {f.split(",")[0].replace(/'/g, "")}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-xs">Font heading</Label>
+                      <select
+                        value={config.typography.fontFamilyHeading ?? config.typography.fontFamily}
+                        onChange={(e) => updateTypography("fontFamilyHeading", e.target.value)}
+                        className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        {FONT_FAMILIES.map((f) => (
+                          <option key={f} value={f}>
+                            {f.split(",")[0].replace(/'/g, "")}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    {([
+                      ["titleSize", "Dim. titolo"],
+                      ["titleWeight", "Peso titolo"],
+                      ["subtitleSize", "Dim. sottotitolo"],
+                      ["labelSize", "Dim. etichetta"],
+                      ["labelWeight", "Peso etichetta"],
+                      ["bodySize", "Dim. corpo"],
+                      ["lineHeight", "Interlinea"],
+                    ] as const).map(([key, label]) => (
+                      <div key={key} className="flex flex-col gap-1.5">
+                        <Label className="text-xs">{label}</Label>
+                        <Input
+                          value={String(config.typography[key] ?? "")}
+                          onChange={(e) => updateTypography(key, e.target.value)}
+                          className="font-mono text-xs"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {activeSection === "spacing" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Spaziatura</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 sm:grid-cols-2">
                   {([
+                    ["formMaxWidth", "Larghezza max"],
+                    ["formPadding", "Padding form"],
+                    ["formPaddingMobile", "Padding mobile"],
+                    ["sectionGap", "Gap sezioni"],
+                    ["fieldGap", "Gap campi"],
                     ["borderRadius", "Border radius"],
-                    ["padding", "Padding"],
-                    ["fontSize", "Dimensione"],
-                    ["fontWeight", "Peso font"],
-                    ["textTransform", "Trasformazione"],
+                    ["inputPadding", "Padding input"],
+                    ["inputBorderRadius", "Radius input"],
+                    ["inputBorderWidth", "Bordo input"],
                   ] as const).map(([key, label]) => (
                     <div key={key} className="flex flex-col gap-1.5">
                       <Label className="text-xs">{label}</Label>
                       <Input
-                        value={String(config.buttons[key])}
-                        onChange={(e) => updateButtons(key, e.target.value)}
+                        value={config.spacing[key]}
+                        onChange={(e) => updateSpacing(key, e.target.value)}
                         className="font-mono text-xs"
                       />
                     </div>
                   ))}
-                </div>
-                {/* Preview */}
-                <div className="rounded-lg border bg-muted/30 p-6">
-                  <p className="mb-3 text-xs text-muted-foreground">Anteprima</p>
-                  <button
-                    type="button"
-                    style={{
-                      backgroundColor: config.buttons.backgroundColor as string,
-                      color: config.buttons.textColor as string,
-                      borderRadius: config.buttons.borderRadius as string,
-                      padding: config.buttons.padding as string,
-                      fontSize: config.buttons.fontSize as string,
-                      fontWeight: config.buttons.fontWeight as number,
-                      textTransform: config.buttons.textTransform as React.CSSProperties["textTransform"],
-                      border: "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Invia
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                </CardContent>
+              </Card>
+            )}
 
-          {activeSection === "card" && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Card</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {([
-                    ["backgroundColor", "Sfondo"],
-                    ["borderColor", "Bordo"],
-                  ] as const).map(([key, label]) => (
-                    <div key={key} className="flex flex-col gap-1.5">
-                      <Label className="text-xs">{label}</Label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={config.card[key]}
-                          onChange={(e) => updateCard(key, e.target.value)}
-                          className="h-8 w-8 cursor-pointer rounded border"
+            {activeSection === "buttons" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Bottoni</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {([
+                      ["backgroundColor", "Sfondo"],
+                      ["textColor", "Testo"],
+                      ["hoverBackgroundColor", "Sfondo hover"],
+                    ] as const).map(([key, label]) => (
+                      <div key={key} className="flex flex-col gap-1.5">
+                        <Label className="text-xs">{label}</Label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={config.buttons[key] as string}
+                            onChange={(e) => updateButtons(key, e.target.value)}
+                            className="h-8 w-8 cursor-pointer rounded border"
+                          />
+                          <Input
+                            value={config.buttons[key] as string}
+                            onChange={(e) => updateButtons(key, e.target.value)}
+                            className="flex-1 font-mono text-xs"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    {([
+                      ["borderRadius", "Border radius"],
+                      ["padding", "Padding"],
+                      ["fontSize", "Dimensione"],
+                      ["fontWeight", "Peso font"],
+                      ["textTransform", "Trasformazione"],
+                    ] as const).map(([key, label]) => (
+                      <div key={key} className="flex flex-col gap-1.5">
+                        <Label className="text-xs">{label}</Label>
+                        <Input
+                          value={String(config.buttons[key])}
+                          onChange={(e) => updateButtons(key, e.target.value)}
+                          className="font-mono text-xs"
                         />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {activeSection === "card" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Card</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {([
+                      ["backgroundColor", "Sfondo"],
+                      ["borderColor", "Bordo"],
+                    ] as const).map(([key, label]) => (
+                      <div key={key} className="flex flex-col gap-1.5">
+                        <Label className="text-xs">{label}</Label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={config.card[key]}
+                            onChange={(e) => updateCard(key, e.target.value)}
+                            className="h-8 w-8 cursor-pointer rounded border"
+                          />
+                          <Input
+                            value={config.card[key]}
+                            onChange={(e) => updateCard(key, e.target.value)}
+                            className="flex-1 font-mono text-xs"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {([
+                      ["borderWidth", "Spessore bordo"],
+                      ["borderRadius", "Border radius"],
+                      ["shadow", "Ombra"],
+                      ["padding", "Padding"],
+                    ] as const).map(([key, label]) => (
+                      <div key={key} className="flex flex-col gap-1.5">
+                        <Label className="text-xs">{label}</Label>
                         <Input
                           value={config.card[key]}
                           onChange={(e) => updateCard(key, e.target.value)}
-                          className="flex-1 font-mono text-xs"
+                          className="font-mono text-xs"
                         />
                       </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="grid gap-4 sm:grid-cols-3">
-                  {([
-                    ["borderWidth", "Spessore bordo"],
-                    ["borderRadius", "Border radius"],
-                    ["shadow", "Ombra"],
-                    ["padding", "Padding"],
-                  ] as const).map(([key, label]) => (
-                    <div key={key} className="flex flex-col gap-1.5">
-                      <Label className="text-xs">{label}</Label>
-                      <Input
-                        value={config.card[key]}
-                        onChange={(e) => updateCard(key, e.target.value)}
-                        className="font-mono text-xs"
-                      />
-                    </div>
-                  ))}
-                </div>
-                {/* Preview */}
-                <div className="rounded-lg border bg-muted/30 p-6">
-                  <p className="mb-3 text-xs text-muted-foreground">Anteprima</p>
-                  <div
-                    style={{
-                      backgroundColor: config.card.backgroundColor,
-                      borderColor: config.card.borderColor,
-                      borderWidth: config.card.borderWidth,
-                      borderStyle: "solid",
-                      borderRadius: config.card.borderRadius,
-                      boxShadow: config.card.shadow,
-                      padding: config.card.padding,
-                    }}
-                  >
-                    <p style={{ color: config.colors.text, fontFamily: config.typography.fontFamily }}>
-                      Contenuto di esempio
-                    </p>
+                    ))}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
+
+        {/* Right: live preview */}
+        <div className="xl:w-80 xl:shrink-0">
+          <div className="sticky top-16">
+            <p className="mb-2 text-xs font-semibold text-muted-foreground">Anteprima</p>
+            <ThemeMiniPreview config={config} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Live mini preview ───────────────────────────────────────────────
+
+function ThemeMiniPreview({ config }: { config: ThemeConfig }) {
+  const c = config.colors;
+  const ty = config.typography;
+  const sp = config.spacing;
+  const btn = config.buttons;
+  const cd = config.card;
+
+  return (
+    <div
+      style={{
+        backgroundColor: c.pageBackground,
+        borderRadius: sp.borderRadius,
+        padding: "16px",
+      }}
+    >
+      {/* Card */}
+      <div
+        style={{
+          backgroundColor: cd.backgroundColor,
+          borderColor: cd.borderColor,
+          borderWidth: cd.borderWidth,
+          borderStyle: "solid",
+          borderRadius: cd.borderRadius,
+          boxShadow: cd.shadow,
+          padding: cd.padding,
+          fontFamily: ty.fontFamily,
+          color: c.text,
+          fontSize: ty.bodySize as string,
+          lineHeight: String(ty.lineHeight),
+        }}
+      >
+        {/* Title */}
+        <h3
+          style={{
+            fontSize: ty.titleSize as string,
+            fontWeight: ty.titleWeight as number,
+            fontFamily: (ty.fontFamilyHeading ?? ty.fontFamily) as string,
+            color: c.text,
+            margin: "0 0 4px 0",
+          }}
+        >
+          Titolo modulo
+        </h3>
+        <p
+          style={{
+            fontSize: ty.subtitleSize as string,
+            color: c.textSecondary,
+            margin: "0 0 16px 0",
+          }}
+        >
+          Descrizione del modulo di esempio
+        </p>
+
+        {/* Text field */}
+        <div style={{ marginBottom: sp.fieldGap }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: ty.labelSize as string,
+              fontWeight: ty.labelWeight as number,
+              marginBottom: "4px",
+            }}
+          >
+            Nome <span style={{ color: c.required }}>*</span>
+          </label>
+          <div
+            style={{
+              backgroundColor: c.inputBackground,
+              border: `${sp.inputBorderWidth} solid ${c.inputBorder}`,
+              borderRadius: sp.inputBorderRadius,
+              padding: sp.inputPadding,
+              fontSize: ty.bodySize as string,
+              color: c.textSecondary,
+            }}
+          >
+            Scrivi qui...
+          </div>
+        </div>
+
+        {/* Radio options */}
+        <div style={{ marginBottom: sp.fieldGap }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: ty.labelSize as string,
+              fontWeight: ty.labelWeight as number,
+              marginBottom: "4px",
+            }}
+          >
+            Valutazione
+          </label>
+          <div
+            style={{
+              border: `1px solid ${c.border}`,
+              borderRadius: sp.inputBorderRadius,
+              padding: "8px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+            }}
+          >
+            {["Ottimo", "Buono", "Sufficiente"].map((opt, i) => (
+              <label
+                key={opt}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  fontSize: ty.bodySize as string,
+                  cursor: "default",
+                }}
+              >
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: "14px",
+                    height: "14px",
+                    borderRadius: "50%",
+                    border: `2px solid ${i === 0 ? c.primary : c.inputBorder}`,
+                    backgroundColor: i === 0 ? c.primary : "transparent",
+                    flexShrink: 0,
+                  }}
+                />
+                {opt}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Submit button */}
+        <button
+          type="button"
+          style={{
+            width: "100%",
+            backgroundColor: btn.backgroundColor as string,
+            color: btn.textColor as string,
+            borderRadius: btn.borderRadius as string,
+            padding: btn.padding as string,
+            fontSize: btn.fontSize as string,
+            fontWeight: btn.fontWeight as number,
+            textTransform: btn.textTransform as React.CSSProperties["textTransform"],
+            border: "none",
+            cursor: "default",
+          }}
+        >
+          Invia
+        </button>
       </div>
     </div>
   );
