@@ -43,7 +43,6 @@ import {
   type Survey,
   type FormChannel,
   type SurveyTheme,
-  type ThemeConfig,
 } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 import { FormPreview } from "./form-preview";
@@ -366,12 +365,6 @@ function SurveyEditContent() {
   // Theme
   const [themes, setThemes] = useState<SurveyTheme[]>([]);
   const [themeId, setThemeId] = useState<string | null>(null);
-
-  const selectedThemeConfig = useMemo<ThemeConfig | null>(() => {
-    if (!themeId) return null;
-    const found = themes.find((t) => t.id === themeId);
-    return found ? found.config : null;
-  }, [themeId, themes]);
 
   // ── Load survey ────────────────────────────────────────────────────
 
@@ -1496,7 +1489,9 @@ function SurveyEditContent() {
           questions={questions}
           languages={languages}
           activeLang={activeLang}
-          themeConfig={selectedThemeConfig}
+          themes={themes}
+          themeId={themeId}
+          onThemeChange={setThemeId}
           onClose={() => setShowPreview(false)}
         />
       )}

@@ -1,7 +1,8 @@
 "use client";
 
-import type { ThemeConfig } from "@/lib/api";
+import type { ThemeConfig, SurveyTheme } from "@/lib/api";
 import { useState, useCallback, useMemo } from "react";
+import { Palette } from "lucide-react";
 import {
   X,
   RotateCcw,
@@ -65,7 +66,9 @@ interface FormPreviewProps {
   questions: PreviewQuestion[];
   languages: string[];
   activeLang: string;
-  themeConfig?: ThemeConfig | null;
+  themes: SurveyTheme[];
+  themeId: string | null;
+  onThemeChange: (themeId: string | null) => void;
   onClose: () => void;
 }
 
@@ -194,7 +197,9 @@ export function FormPreview({
   questions,
   languages,
   activeLang: initialLang,
-  themeConfig,
+  themes,
+  themeId,
+  onThemeChange,
   onClose,
 }: FormPreviewProps) {
   const [answers, setAnswers] = useState<Answers>({});
@@ -278,6 +283,12 @@ export function FormPreview({
 
   // ── Render ────────────────────────────────────────────────────────
 
+  const themeConfig = useMemo(() => {
+    if (!themeId) return null;
+    const found = themes.find((t) => t.id === themeId);
+    return found ? found.config : null;
+  }, [themeId, themes]);
+
   const themeStyle = themeConfig ? themeToCSS(themeConfig) : undefined;
   const themed = !!themeConfig;
 
@@ -319,7 +330,23 @@ export function FormPreview({
               ))}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {/* Theme selector */}
+            {themes.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Palette className="h-3.5 w-3.5 text-muted-foreground" />
+                <select
+                  value={themeId ?? ""}
+                  onChange={(e) => onThemeChange(e.target.value || null)}
+                  className="h-7 rounded-md border border-input bg-background px-2 text-xs"
+                >
+                  <option value="">Nessun tema</option>
+                  {themes.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <Button size="sm" variant="outline" onClick={handleReset}>
               <RotateCcw className="mr-1 h-3.5 w-3.5" />
               Reset
