@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, useCallback, useMemo } from "react";
+import { Suspense, useEffect, useState, useCallback, useMemo, lazy } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronDown,
@@ -13,6 +13,8 @@ import {
   Circle,
   AlertCircle,
   Eye,
+  Sparkles,
+  Palette,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -37,12 +39,16 @@ import {
 import {
   getSurveyById,
   updateSurvey,
+  getThemes,
   type Survey,
-  type FormKind,
   type FormChannel,
+  type SurveyTheme,
+  type ThemeConfig,
 } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 import { FormPreview } from "./form-preview";
+import { AiSurveyPanel } from "@/components/ai-survey-panel";
+import { SkeletonPage } from "@/components/skeleton-page";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -308,13 +314,7 @@ function langCompletionStatus(
 
 export default function SurveyEditPage() {
   return (
-    <Suspense
-      fallback={
-        <main className="flex flex-1 items-center justify-center p-6">
-          <p className="text-muted-foreground">Caricamento...</p>
-        </main>
-      }
-    >
+    <Suspense fallback={<SkeletonPage />}>
       <SurveyEditContent />
     </Suspense>
   );
@@ -343,7 +343,6 @@ function SurveyEditContent() {
   const [desc, setDesc] = useState<I18nMap>({});
   const [btnLabel, setBtnLabel] = useState<I18nMap>({});
   const [btnDesc, setBtnDesc] = useState<I18nMap>({});
-  const [kind, setKind] = useState<FormKind>("SURVEY");
   const [channel, setChannel] = useState<FormChannel | "">("");
 
   // Questions
@@ -360,6 +359,19 @@ function SurveyEditContent() {
 
   // Preview
   const [showPreview, setShowPreview] = useState(false);
+
+  // AI panel
+  const [showAiPanel, setShowAiPanel] = useState(false);
+
+  // Theme
+  const [themes, setThemes] = useState<SurveyTheme[]>([]);
+  const [themeId, setThemeId] = useState<string | null>(null);
+
+  const selectedThemeConfig = useMemo<ThemeConfig | null>(() => {
+    if (!themeId) return null;
+    const found = themes.find((t) => t.id === themeId);
+    return found ? found.config : null;
+  }, [themeId, themes]);
 
   // ── Load survey ────────────────────────────────────────────────────
 
@@ -398,8 +410,13 @@ function SurveyEditContent() {
     setDesc(toI18n(schema.description, langs));
     setBtnLabel(toI18n(schema.buttonLabel, langs));
     setBtnDesc(toI18n(schema.buttonDescription, langs));
-    setKind(s.kind);
     setChannel(s.channel ?? "");
+    setThemeId(s.themeId ?? null);
+
+    // Fetch themes for the org
+    getThemes(s.orgId)
+      .then((res) => setThemes(res.themes))
+      .catch(() => {});
 
     const qs = Array.isArray(schema.questions)
       ? (schema.questions as Record<string, unknown>[]).map((q) =>
@@ -492,22 +509,27 @@ function SurveyEditContent() {
     setShowJson(true);
   }
 
+  function applySurveyFromSchema(schema: Record<string, unknown>) {
+    const langs = detectLanguages(schema);
+    setLanguages(langs);
+    setActiveLang(langs[0]);
+    setTitle(toI18n(schema.title, langs));
+    setDesc(toI18n(schema.description, langs));
+    setBtnLabel(toI18n(schema.buttonLabel, langs));
+    setBtnDesc(toI18n(schema.buttonDescription, langs));
+    setQuestions(
+      Array.isArray(schema.questions)
+        ? (schema.questions as Record<string, unknown>[]).map((q) =>
+            parseQuestion(q, langs),
+          )
+        : [],
+    );
+  }
+
   function applyJson() {
     try {
       const parsed = JSON.parse(jsonText) as Record<string, unknown>;
-      const langs = detectLanguages(parsed);
-      setLanguages(langs);
-      setActiveLang(langs[0]);
-      setTitle(toI18n(parsed.title, langs));
-      setDesc(toI18n(parsed.description, langs));
-      setBtnLabel(toI18n(parsed.buttonLabel, langs));
-      setBtnDesc(toI18n(parsed.buttonDescription, langs));
-      const qs = Array.isArray(parsed.questions)
-        ? (parsed.questions as Record<string, unknown>[]).map((q) =>
-            parseQuestion(q, langs),
-          )
-        : [];
-      setQuestions(qs);
+      applySurveyFromSchema(parsed);
       setJsonError(null);
       setShowJson(false);
     } catch {
@@ -528,9 +550,8 @@ function SurveyEditContent() {
         description:
           Object.values(desc).find((v) => v) || undefined,
         schema,
-        kind,
-        channel:
-          kind === "REPORT" && channel ? (channel as FormChannel) : null,
+        channel: channel ? (channel as FormChannel) : null,
+        themeId,
       });
       router.push("/rpg/surveys");
     } catch (err) {
@@ -700,16 +721,12 @@ function SurveyEditContent() {
   // ── Render ────────────────────────────────────────────────────────
 
   if (loading) {
-    return (
-      <main className="flex flex-1 items-center justify-center p-6">
-        <p className="text-muted-foreground">Caricamento modulo...</p>
-      </main>
-    );
+    return <SkeletonPage />;
   }
 
   if (error || !survey) {
     return (
-      <main className="flex flex-1 items-center justify-center p-6">
+      <div className="flex flex-1 items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Errore</CardTitle>
@@ -724,17 +741,17 @@ function SurveyEditContent() {
             </Button>
           </CardFooter>
         </Card>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="mx-auto max-w-5xl p-4 py-6">
+    <div className="mx-auto max-w-5xl">
       {/* ── Sticky toolbar ──────────────────────────────────────────── */}
       <div className="sticky top-0 z-20 -mx-4 mb-6 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="truncate text-lg font-semibold">
+            <h1 className="truncate font-heading text-lg font-semibold">
               {title[primaryLang] || survey.title}
             </h1>
             <p className="text-xs text-muted-foreground">
@@ -931,40 +948,76 @@ function SurveyEditContent() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <Label>Tipo</Label>
+              <Label>Canale (opzionale)</Label>
               <Select
-                value={kind}
-                onValueChange={(v) => setKind(v as FormKind)}
+                value={channel || "none"}
+                onValueChange={(v) => setChannel(v === "none" ? "" : v as FormChannel)}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="SURVEY">Questionario</SelectItem>
-                  <SelectItem value="REPORT">Segnalazione</SelectItem>
+                  <SelectItem value="none">Nessuno</SelectItem>
+                  <SelectItem value="PDR125">PdR 125</SelectItem>
+                  <SelectItem value="WHISTLEBLOWING">
+                    Whistleblowing
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            {kind === "REPORT" && (
-              <div className="flex flex-col gap-1.5">
-                <Label>Canale</Label>
-                <Select
-                  value={channel || "PDR125"}
-                  onValueChange={(v) => setChannel(v as FormChannel)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PDR125">PdR 125</SelectItem>
-                    <SelectItem value="WHISTLEBLOWING">
-                      Whistleblowing
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="flex flex-col gap-1.5">
+              <Label className="flex items-center gap-1.5">
+                <Palette className="h-3.5 w-3.5" />
+                Tema
+              </Label>
+              <Select
+                value={themeId ?? "none"}
+                onValueChange={(v) => setThemeId(v === "none" ? null : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Nessun tema" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nessun tema</SelectItem>
+                  {themes.filter((t) => t.isBuiltin).length > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                        Predefiniti
+                      </div>
+                      {themes.filter((t) => t.isBuiltin).map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          <span className="flex items-center gap-2">
+                            <span
+                              className="inline-block h-3 w-3 rounded-full border"
+                              style={{ backgroundColor: t.config.colors.primary }}
+                            />
+                            {t.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
+                  {themes.filter((t) => !t.isBuiltin).length > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                        I miei temi
+                      </div>
+                      {themes.filter((t) => !t.isBuiltin).map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          <span className="flex items-center gap-2">
+                            <span
+                              className="inline-block h-3 w-3 rounded-full border"
+                              style={{ backgroundColor: t.config.colors.primary }}
+                            />
+                            {t.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -975,6 +1028,14 @@ function SurveyEditContent() {
           Domande ({questions.length})
         </h2>
         <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowAiPanel((v) => !v)}
+          >
+            <Sparkles className="mr-1 h-4 w-4" />
+            AI
+          </Button>
           <Button
             size="sm"
             variant="outline"
@@ -1435,9 +1496,18 @@ function SurveyEditContent() {
           questions={questions}
           languages={languages}
           activeLang={activeLang}
+          themeConfig={selectedThemeConfig}
           onClose={() => setShowPreview(false)}
         />
       )}
-    </main>
+
+      {/* AI Assistant panel */}
+      <AiSurveyPanel
+        open={showAiPanel}
+        onClose={() => setShowAiPanel(false)}
+        onApplySchema={applySurveyFromSchema}
+        currentSchema={buildSchema()}
+      />
+    </div>
   );
 }

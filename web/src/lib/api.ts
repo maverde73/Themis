@@ -194,10 +194,210 @@ export async function generatePairingQr(
   return handleResponse<PairingQrResponse>(res);
 }
 
+// ── Themes ──────────────────────────────────────────────────────────────
+
+export interface ThemeColors {
+  pageBackground: string;
+  surface: string;
+  primary: string;
+  primaryHover: string;
+  text: string;
+  textSecondary: string;
+  border: string;
+  error: string;
+  success: string;
+  warning: string;
+  inputBackground: string;
+  inputBorder: string;
+  inputFocus: string;
+  selectionHighlight: string;
+  required: string;
+}
+
+export interface ThemeTypography {
+  fontFamily: string;
+  fontFamilyHeading: string | null;
+  titleSize: string;
+  titleWeight: string | number;
+  subtitleSize: string;
+  subtitleWeight: string | number;
+  sectionTitleSize: string;
+  sectionTitleWeight: string | number;
+  labelSize: string;
+  labelWeight: string | number;
+  bodySize: string;
+  bodyWeight: string | number;
+  lineHeight: string | number;
+}
+
+export interface ThemeSpacing {
+  formMaxWidth: string;
+  formPadding: string;
+  formPaddingMobile: string;
+  sectionGap: string;
+  fieldGap: string;
+  borderRadius: string;
+  inputPadding: string;
+  inputBorderRadius: string;
+  inputBorderWidth: string;
+}
+
+export interface ThemeButtons {
+  backgroundColor: string;
+  textColor: string;
+  hoverBackgroundColor: string;
+  borderRadius: string;
+  padding: string;
+  fontSize: string;
+  fontWeight: string | number;
+  textTransform: "none" | "uppercase" | "capitalize";
+}
+
+export interface ThemeCard {
+  backgroundColor: string;
+  borderColor: string;
+  borderWidth: string;
+  borderRadius: string;
+  shadow: string;
+  padding: string;
+}
+
+export interface ThemeConfig {
+  colors: ThemeColors;
+  typography: ThemeTypography;
+  spacing: ThemeSpacing;
+  buttons: ThemeButtons;
+  card: ThemeCard;
+}
+
+export interface SurveyTheme {
+  id: string;
+  name: string;
+  description: string | null;
+  config: ThemeConfig;
+  isBuiltin: boolean;
+  isPublic: boolean;
+  clonedFrom: string | null;
+  createdBy: string | null;
+  orgId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ThemeListResponse {
+  themes: SurveyTheme[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export async function getThemes(orgId: string): Promise<ThemeListResponse> {
+  const params = new URLSearchParams({ org_id: orgId });
+  const res = await fetch(`${API_URL}/themes?${params.toString()}`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<ThemeListResponse>(res);
+}
+
+export async function getThemeById(id: string): Promise<SurveyTheme> {
+  const res = await fetch(`${API_URL}/themes/${id}`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<SurveyTheme>(res);
+}
+
+export async function getDefaultThemeConfig(): Promise<ThemeConfig> {
+  const res = await fetch(`${API_URL}/themes/defaults`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<ThemeConfig>(res);
+}
+
+export async function createTheme(data: {
+  name: string;
+  description?: string | null;
+  isPublic?: boolean;
+  config?: Partial<ThemeConfig>;
+}): Promise<SurveyTheme> {
+  const res = await fetch(`${API_URL}/themes`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse<SurveyTheme>(res);
+}
+
+export async function updateTheme(
+  id: string,
+  data: {
+    name?: string;
+    description?: string | null;
+    isPublic?: boolean;
+    config?: Partial<ThemeConfig>;
+  },
+): Promise<SurveyTheme> {
+  const res = await fetch(`${API_URL}/themes/${id}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse<SurveyTheme>(res);
+}
+
+export async function patchThemeSection(
+  id: string,
+  section: string,
+  data: Record<string, unknown>,
+): Promise<SurveyTheme> {
+  const res = await fetch(`${API_URL}/themes/${id}/config/${section}`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse<SurveyTheme>(res);
+}
+
+export async function cloneTheme(
+  id: string,
+  name?: string,
+): Promise<SurveyTheme> {
+  const res = await fetch(`${API_URL}/themes/${id}/clone`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ name }),
+  });
+  return handleResponse<SurveyTheme>(res);
+}
+
+export async function deleteTheme(id: string): Promise<void> {
+  const res = await fetch(`${API_URL}/themes/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(
+      (body as { message?: string }).message ||
+        `Request failed with status ${res.status}`,
+    );
+  }
+}
+
+export async function applyThemeToSurvey(
+  surveyId: string,
+  themeId: string | null,
+): Promise<Survey> {
+  const res = await fetch(`${API_URL}/surveys/${surveyId}/theme`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify({ themeId }),
+  });
+  return handleResponse<Survey>(res);
+}
+
 // ── Surveys ─────────────────────────────────────────────────────────────
 
 export type SurveyStatus = "DRAFT" | "ACTIVE" | "CLOSED" | "ARCHIVED";
-export type FormKind = "SURVEY" | "REPORT";
 export type FormChannel = "PDR125" | "WHISTLEBLOWING";
 
 export interface Survey {
@@ -207,9 +407,10 @@ export interface Survey {
   description: string | null;
   schema: Record<string, unknown>;
   status: SurveyStatus;
-  kind: FormKind;
   channel: FormChannel | null;
   icon: string | null;
+  themeId: string | null;
+  theme: { id: string; name: string; config: ThemeConfig } | null;
   version: number;
   responseCount: number;
   createdAt: string;
@@ -221,9 +422,9 @@ export interface CreateSurveyData {
   title: string;
   description?: string;
   schema: Record<string, unknown>;
-  kind?: FormKind;
   channel?: FormChannel;
   icon?: string;
+  themeId?: string | null;
 }
 
 export interface UpdateSurveyData {
@@ -231,9 +432,9 @@ export interface UpdateSurveyData {
   description?: string;
   schema?: Record<string, unknown>;
   status?: SurveyStatus;
-  kind?: FormKind;
   channel?: FormChannel | null;
   icon?: string | null;
+  themeId?: string | null;
 }
 
 export interface AggregatedQuestion {
@@ -252,9 +453,8 @@ export interface SurveyResults {
   questions: AggregatedQuestion[];
 }
 
-export async function getSurveys(orgId: string, kind?: FormKind): Promise<Survey[]> {
+export async function getSurveys(orgId: string): Promise<Survey[]> {
   const params = new URLSearchParams({ org_id: orgId });
-  if (kind) params.set("kind", kind);
   const res = await fetch(`${API_URL}/surveys?${params.toString()}`, {
     headers: authHeaders(),
   });
@@ -268,9 +468,23 @@ export async function getSurveyById(id: string): Promise<Survey> {
   return handleResponse<Survey>(res);
 }
 
+export interface TemplateCatalogEntry {
+  id: string;
+  slug: string;
+  channel?: string | null;
+  icon: string | null;
+  catalogTitle: Record<string, string>;
+  catalogDescription: Record<string, string>;
+}
+
+export async function listTemplates(): Promise<TemplateCatalogEntry[]> {
+  const res = await fetch(`${API_URL}/templates`);
+  return handleResponse<TemplateCatalogEntry[]>(res);
+}
+
 export async function importTemplate(
   orgId: string,
-  templateId: "pdr125" | "wb",
+  templateId: string,
 ): Promise<Survey[]> {
   const res = await fetch(
     `${API_URL}/organizations/${orgId}/import-template`,

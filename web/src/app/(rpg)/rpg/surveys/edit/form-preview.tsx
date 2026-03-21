@@ -1,5 +1,6 @@
 "use client";
 
+import type { ThemeConfig } from "@/lib/api";
 import { useState, useCallback, useMemo } from "react";
 import {
   X,
@@ -64,6 +65,7 @@ interface FormPreviewProps {
   questions: PreviewQuestion[];
   languages: string[];
   activeLang: string;
+  themeConfig?: ThemeConfig | null;
   onClose: () => void;
 }
 
@@ -140,6 +142,7 @@ export function FormPreview({
   questions,
   languages,
   activeLang: initialLang,
+  themeConfig,
   onClose,
 }: FormPreviewProps) {
   const [answers, setAnswers] = useState<Answers>({});
