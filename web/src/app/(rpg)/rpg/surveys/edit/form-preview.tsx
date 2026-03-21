@@ -296,7 +296,7 @@ export function FormPreview({
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 backdrop-blur-sm"
       style={{
-        backgroundColor: themed
+        background: themed
           ? `var(--theme-bg, rgba(0,0,0,0.5))`
           : undefined,
       }}
@@ -386,7 +386,7 @@ export function FormPreview({
         {/* Form card */}
         <div
           style={themed ? {
-            backgroundColor: "var(--theme-card-bg)",
+            background: "var(--theme-card-bg)",
             borderColor: "var(--theme-card-border)",
             borderWidth: "var(--theme-card-border-width)",
             borderStyle: "solid",

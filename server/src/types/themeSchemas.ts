@@ -9,6 +9,13 @@ const cssColorSchema = z
     "Invalid CSS color",
   );
 
+const cssBackgroundSchema = z
+  .string()
+  .regex(
+    /^(#[0-9a-fA-F]{3,8}|rgba?\(.+\)|hsla?\(.+\)|transparent|inherit|(linear|radial|conic)-gradient\(.+\))$/,
+    "Invalid CSS color or gradient",
+  );
+
 const cssSizeSchema = z
   .string()
   .regex(/^\d+(\.\d+)?(px|rem|em|%|vh|vw)$/, "Invalid CSS size");
@@ -92,8 +99,8 @@ export const DEFAULT_THEME_CONFIG = {
 const d = DEFAULT_THEME_CONFIG;
 
 const themeColorsSchema = z.object({
-  pageBackground:     cssColorSchema.default(d.colors.pageBackground),
-  surface:            cssColorSchema.default(d.colors.surface),
+  pageBackground:     cssBackgroundSchema.default(d.colors.pageBackground),
+  surface:            cssBackgroundSchema.default(d.colors.surface),
   primary:            cssColorSchema.default(d.colors.primary),
   primaryHover:       cssColorSchema.default(d.colors.primaryHover),
   text:               cssColorSchema.default(d.colors.text),

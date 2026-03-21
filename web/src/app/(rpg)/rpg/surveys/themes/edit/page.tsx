@@ -53,6 +53,24 @@ const COLOR_LABELS: Record<keyof ThemeColors, string> = {
   required: "Obbligatorio",
 };
 
+// Fields that support gradients (in addition to solid colors)
+const GRADIENT_FIELDS: Set<keyof ThemeColors> = new Set(["pageBackground", "surface"]);
+
+const GRADIENT_PRESETS = [
+  { label: "Cielo", value: "linear-gradient(135deg, #667eea, #764ba2)" },
+  { label: "Tramonto", value: "linear-gradient(135deg, #f093fb, #f5576c)" },
+  { label: "Oceano", value: "linear-gradient(135deg, #4facfe, #00f2fe)" },
+  { label: "Foresta", value: "linear-gradient(135deg, #43e97b, #38f9d7)" },
+  { label: "Sabbia", value: "linear-gradient(135deg, #ffecd2, #fcb69f)" },
+  { label: "Notte", value: "linear-gradient(135deg, #0c0c1d, #1a1a3e)" },
+  { label: "Aurora", value: "linear-gradient(135deg, #a18cd1, #fbc2eb)" },
+  { label: "Acciaio", value: "linear-gradient(135deg, #e0e5ec, #bdc3c7)" },
+];
+
+function isGradient(value: string): boolean {
+  return /^(linear|radial|conic)-gradient\(/.test(value);
+}
+
 const FONT_FAMILIES = [
   "Inter, -apple-system, sans-serif",
   "system-ui, sans-serif",
@@ -227,24 +245,98 @@ function ThemeEditContent() {
                   <CardTitle className="text-base">Colori</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4 sm:grid-cols-2">
-                  {(Object.keys(COLOR_LABELS) as (keyof ThemeColors)[]).map((key) => (
-                    <div key={key} className="flex flex-col gap-1.5">
-                      <Label className="text-xs">{COLOR_LABELS[key]}</Label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={config.colors[key].startsWith("rgba") ? "#000000" : config.colors[key]}
-                          onChange={(e) => updateColors(key, e.target.value)}
-                          className="h-8 w-8 cursor-pointer rounded border"
-                        />
-                        <Input
-                          value={config.colors[key]}
-                          onChange={(e) => updateColors(key, e.target.value)}
-                          className="flex-1 font-mono text-xs"
-                        />
+                  {(Object.keys(COLOR_LABELS) as (keyof ThemeColors)[]).map((key) => {
+                    const value = config.colors[key];
+                    const supportsGradient = GRADIENT_FIELDS.has(key);
+                    const valueIsGradient = isGradient(value);
+
+                    return (
+                      <div key={key} className="flex flex-col gap-1.5">
+                        <Label className="text-xs">{COLOR_LABELS[key]}</Label>
+
+                        {supportsGradient && (
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (valueIsGradient) updateColors(key, "#f0f2f5");
+                              }}
+                              className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                                !valueIsGradient
+                                  ? "bg-primary text-primary-foreground"
+                                  : "text-muted-foreground hover:bg-accent"
+                              }`}
+                            >
+                              Colore
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!valueIsGradient)
+                                  updateColors(key, GRADIENT_PRESETS[0].value);
+                              }}
+                              className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                                valueIsGradient
+                                  ? "bg-primary text-primary-foreground"
+                                  : "text-muted-foreground hover:bg-accent"
+                              }`}
+                            >
+                              Gradiente
+                            </button>
+                          </div>
+                        )}
+
+                        {supportsGradient && valueIsGradient ? (
+                          <div className="flex flex-col gap-2">
+                            {/* Gradient presets */}
+                            <div className="flex flex-wrap gap-1.5">
+                              {GRADIENT_PRESETS.map((p) => (
+                                <button
+                                  key={p.label}
+                                  type="button"
+                                  title={p.label}
+                                  onClick={() => updateColors(key, p.value)}
+                                  className={`h-6 w-6 rounded-full border-2 transition-transform hover:scale-110 ${
+                                    value === p.value
+                                      ? "border-primary ring-2 ring-primary/30"
+                                      : "border-transparent"
+                                  }`}
+                                  style={{ background: p.value }}
+                                />
+                              ))}
+                            </div>
+                            {/* Preview + text input */}
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="h-8 w-8 shrink-0 rounded border"
+                                style={{ background: value }}
+                              />
+                              <Input
+                                value={value}
+                                onChange={(e) => updateColors(key, e.target.value)}
+                                className="flex-1 font-mono text-xs"
+                                placeholder="linear-gradient(...)"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={value.startsWith("rgba") || value.startsWith("hsla") ? "#000000" : value}
+                              onChange={(e) => updateColors(key, e.target.value)}
+                              className="h-8 w-8 cursor-pointer rounded border"
+                            />
+                            <Input
+                              value={value}
+                              onChange={(e) => updateColors(key, e.target.value)}
+                              className="flex-1 font-mono text-xs"
+                            />
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </CardContent>
               </Card>
             )}
@@ -467,7 +559,7 @@ function ThemeMiniPreview({ config }: { config: ThemeConfig }) {
   return (
     <div
       style={{
-        backgroundColor: c.pageBackground,
+        background: c.pageBackground,
         borderRadius: sp.borderRadius,
         padding: "16px",
       }}
@@ -475,7 +567,7 @@ function ThemeMiniPreview({ config }: { config: ThemeConfig }) {
       {/* Card */}
       <div
         style={{
-          backgroundColor: cd.backgroundColor,
+          background: cd.backgroundColor,
           borderColor: cd.borderColor,
           borderWidth: cd.borderWidth,
           borderStyle: "solid",
