@@ -127,9 +127,12 @@ function ThemeEditContent() {
     loadTheme();
   }, [router, loadTheme]);
 
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   async function handleSave() {
     if (!name.trim() || !config) return;
     setSaving(true);
+    setSaveError(null);
     try {
       if (isNew) {
         await createTheme({
@@ -145,8 +148,8 @@ function ThemeEditContent() {
         });
       }
       router.push("/rpg/surveys/themes");
-    } catch {
-      // ignore
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Errore nel salvataggio");
     } finally {
       setSaving(false);
     }
@@ -210,6 +213,12 @@ function ThemeEditContent() {
           className="mt-1"
         />
       </div>
+
+      {saveError && (
+        <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/5 p-3">
+          <p className="text-sm text-destructive">{saveError}</p>
+        </div>
+      )}
 
       <div className="flex flex-col gap-6 xl:flex-row">
         {/* Left: tabs + section content */}

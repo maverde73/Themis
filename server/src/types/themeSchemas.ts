@@ -4,15 +4,19 @@ import { z } from "zod";
 
 const cssColorSchema = z
   .string()
-  .regex(
-    /^(#[0-9a-fA-F]{3,8}|rgba?\(.+\)|hsla?\(.+\)|transparent|inherit)$/,
+  .min(1)
+  .refine(
+    (v) => /^(#[0-9a-fA-F]{3,8}|rgba?\(.*\)|hsla?\(.*\)|transparent|inherit)$/.test(v),
     "Invalid CSS color",
   );
 
 const cssBackgroundSchema = z
   .string()
-  .regex(
-    /^(#[0-9a-fA-F]{3,8}|rgba?\(.+\)|hsla?\(.+\)|transparent|inherit|(linear|radial|conic)-gradient\(.+\))$/,
+  .min(1)
+  .refine(
+    (v) =>
+      /^(#[0-9a-fA-F]{3,8}|rgba?\(.*\)|hsla?\(.*\)|transparent|inherit)$/.test(v) ||
+      /^(linear|radial|conic)-gradient\(/.test(v),
     "Invalid CSS color or gradient",
   );
 
