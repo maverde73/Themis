@@ -133,6 +133,58 @@ function t(map: I18nMap, lang: string): string {
 const textareaClasses =
   "min-h-[80px] w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
+// ── Theme → CSS custom properties ───────────────────────────────────
+
+function themeToCSS(config: ThemeConfig): React.CSSProperties {
+  const c = config.colors;
+  const ty = config.typography;
+  const sp = config.spacing;
+  const btn = config.buttons;
+  const card = config.card;
+  return {
+    "--theme-bg": c.pageBackground,
+    "--theme-surface": c.surface,
+    "--theme-primary": c.primary,
+    "--theme-primary-hover": c.primaryHover,
+    "--theme-text": c.text,
+    "--theme-text-secondary": c.textSecondary,
+    "--theme-border": c.border,
+    "--theme-error": c.error,
+    "--theme-input-bg": c.inputBackground,
+    "--theme-input-border": c.inputBorder,
+    "--theme-input-focus": c.inputFocus,
+    "--theme-required": c.required,
+    "--theme-font-family": ty.fontFamily,
+    "--theme-font-heading": ty.fontFamilyHeading ?? ty.fontFamily,
+    "--theme-title-size": ty.titleSize,
+    "--theme-title-weight": String(ty.titleWeight),
+    "--theme-subtitle-size": ty.subtitleSize,
+    "--theme-label-size": ty.labelSize,
+    "--theme-label-weight": String(ty.labelWeight),
+    "--theme-body-size": ty.bodySize,
+    "--theme-line-height": String(ty.lineHeight),
+    "--theme-max-width": sp.formMaxWidth,
+    "--theme-padding": sp.formPadding,
+    "--theme-border-radius": sp.borderRadius,
+    "--theme-input-radius": sp.inputBorderRadius,
+    "--theme-field-gap": sp.fieldGap,
+    "--theme-btn-bg": btn.backgroundColor,
+    "--theme-btn-color": btn.textColor,
+    "--theme-btn-hover-bg": btn.hoverBackgroundColor,
+    "--theme-btn-radius": btn.borderRadius,
+    "--theme-btn-padding": btn.padding,
+    "--theme-btn-font-size": btn.fontSize,
+    "--theme-btn-font-weight": String(btn.fontWeight),
+    "--theme-btn-transform": btn.textTransform,
+    "--theme-card-bg": card.backgroundColor,
+    "--theme-card-border": card.borderColor,
+    "--theme-card-border-width": card.borderWidth,
+    "--theme-card-radius": card.borderRadius,
+    "--theme-card-shadow": card.shadow,
+    "--theme-card-padding": card.padding,
+  } as React.CSSProperties;
+}
+
 // ── Component ────────────────────────────────────────────────────────
 
 export function FormPreview({
@@ -226,9 +278,25 @@ export function FormPreview({
 
   // ── Render ────────────────────────────────────────────────────────
 
+  const themeStyle = themeConfig ? themeToCSS(themeConfig) : undefined;
+  const themed = !!themeConfig;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
-      <div className="my-8 w-full max-w-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 backdrop-blur-sm"
+      style={{
+        backgroundColor: themed
+          ? `var(--theme-bg, rgba(0,0,0,0.5))`
+          : undefined,
+      }}
+    >
+      <div
+        className="my-8 w-full"
+        style={{
+          maxWidth: themed ? `var(--theme-max-width, 42rem)` : "42rem",
+          ...themeStyle,
+        }}
+      >
         {/* Toolbar */}
         <div className="mb-4 flex items-center justify-between rounded-xl bg-background p-3 ring-1 ring-foreground/10">
           <div className="flex items-center gap-3">
@@ -289,52 +357,147 @@ export function FormPreview({
         )}
 
         {/* Form card */}
-        <Card>
-          {/* Header */}
-          <CardHeader>
-            <CardTitle className="text-xl">
-              {t(title, previewLang) || "Senza titolo"}
-            </CardTitle>
-            {t(description, previewLang) && (
-              <CardDescription className="text-sm">
-                {t(description, previewLang)}
-              </CardDescription>
-            )}
-          </CardHeader>
-
-          <CardContent className="flex flex-col gap-6">
-            {visibleQuestions.map((q) => (
-              <QuestionField
-                key={q.id}
-                question={q}
-                lang={previewLang}
-                answer={answers[q.id]}
-                error={errors[q.id]}
-                onAnswer={setAnswer}
-                onToggleMulti={toggleMultiChoice}
-              />
-            ))}
-
-            {visibleQuestions.length === 0 && (
-              <p className="py-4 text-center text-muted-foreground">
-                Nessuna domanda visibile con le risposte attuali.
-              </p>
-            )}
-          </CardContent>
-
-          <CardFooter className="flex-col items-stretch gap-3">
-            <Button onClick={handleSubmit} disabled={submitted}>
-              {t(buttonLabel, previewLang) || "Invia"}
-            </Button>
-
-            {Object.keys(errors).length > 0 && (
-              <div className="flex items-center gap-2 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4" />
-                {Object.keys(errors).length} campo/i obbligatorio/i mancante/i
+        <div
+          style={themed ? {
+            backgroundColor: "var(--theme-card-bg)",
+            borderColor: "var(--theme-card-border)",
+            borderWidth: "var(--theme-card-border-width)",
+            borderStyle: "solid",
+            borderRadius: "var(--theme-card-radius)",
+            boxShadow: "var(--theme-card-shadow)",
+            padding: "var(--theme-card-padding)",
+            fontFamily: "var(--theme-font-family)",
+            color: "var(--theme-text)",
+            fontSize: "var(--theme-body-size)",
+            lineHeight: "var(--theme-line-height)",
+          } : undefined}
+          className={themed ? "" : undefined}
+        >
+          {themed ? (
+            <>
+              {/* Themed header */}
+              <div style={{ marginBottom: "var(--theme-field-gap)" }}>
+                <h2 style={{
+                  fontSize: "var(--theme-title-size)",
+                  fontWeight: "var(--theme-title-weight)" as unknown as number,
+                  fontFamily: "var(--theme-font-heading)",
+                  color: "var(--theme-text)",
+                  margin: 0,
+                }}>
+                  {t(title, previewLang) || "Senza titolo"}
+                </h2>
+                {t(description, previewLang) && (
+                  <p style={{
+                    fontSize: "var(--theme-subtitle-size)",
+                    color: "var(--theme-text-secondary)",
+                    marginTop: "4px",
+                  }}>
+                    {t(description, previewLang)}
+                  </p>
+                )}
               </div>
-            )}
-          </CardFooter>
-        </Card>
+
+              {/* Themed questions */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--theme-field-gap)" }}>
+                {visibleQuestions.map((q) => (
+                  <QuestionField
+                    key={q.id}
+                    question={q}
+                    lang={previewLang}
+                    answer={answers[q.id]}
+                    error={errors[q.id]}
+                    onAnswer={setAnswer}
+                    onToggleMulti={toggleMultiChoice}
+                  />
+                ))}
+              </div>
+
+              {visibleQuestions.length === 0 && (
+                <p style={{ textAlign: "center", color: "var(--theme-text-secondary)", padding: "16px 0" }}>
+                  Nessuna domanda visibile con le risposte attuali.
+                </p>
+              )}
+
+              {/* Themed submit button */}
+              <div style={{ marginTop: "var(--theme-field-gap)" }}>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={submitted}
+                  style={{
+                    width: "100%",
+                    backgroundColor: "var(--theme-btn-bg)",
+                    color: "var(--theme-btn-color)",
+                    borderRadius: "var(--theme-btn-radius)",
+                    padding: "var(--theme-btn-padding)",
+                    fontSize: "var(--theme-btn-font-size)",
+                    fontWeight: "var(--theme-btn-font-weight)" as unknown as number,
+                    textTransform: "var(--theme-btn-transform)" as React.CSSProperties["textTransform"],
+                    border: "none",
+                    cursor: submitted ? "default" : "pointer",
+                    opacity: submitted ? 0.6 : 1,
+                  }}
+                >
+                  {t(buttonLabel, previewLang) || "Invia"}
+                </button>
+              </div>
+
+              {Object.keys(errors).length > 0 && (
+                <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "var(--theme-error)" }}>
+                  <AlertCircle className="h-4 w-4" />
+                  {Object.keys(errors).length} campo/i obbligatorio/i mancante/i
+                </div>
+              )}
+            </>
+          ) : (
+            <Card>
+              {/* Header */}
+              <CardHeader>
+                <CardTitle className="text-xl">
+                  {t(title, previewLang) || "Senza titolo"}
+                </CardTitle>
+                {t(description, previewLang) && (
+                  <CardDescription className="text-sm">
+                    {t(description, previewLang)}
+                  </CardDescription>
+                )}
+              </CardHeader>
+
+              <CardContent className="flex flex-col gap-6">
+                {visibleQuestions.map((q) => (
+                  <QuestionField
+                    key={q.id}
+                    question={q}
+                    lang={previewLang}
+                    answer={answers[q.id]}
+                    error={errors[q.id]}
+                    onAnswer={setAnswer}
+                    onToggleMulti={toggleMultiChoice}
+                  />
+                ))}
+
+                {visibleQuestions.length === 0 && (
+                  <p className="py-4 text-center text-muted-foreground">
+                    Nessuna domanda visibile con le risposte attuali.
+                  </p>
+                )}
+              </CardContent>
+
+              <CardFooter className="flex-col items-stretch gap-3">
+                <Button onClick={handleSubmit} disabled={submitted}>
+                  {t(buttonLabel, previewLang) || "Invia"}
+                </Button>
+
+                {Object.keys(errors).length > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    {Object.keys(errors).length} campo/i obbligatorio/i mancante/i
+                  </div>
+                )}
+              </CardFooter>
+            </Card>
+          )}
+        </div>
 
         {/* Branch info panel */}
         {hiddenByBranch.length > 0 && (
