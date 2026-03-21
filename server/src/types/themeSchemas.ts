@@ -145,7 +145,7 @@ const themeSpacingSchema = z.object({
 });
 
 const themeButtonsSchema = z.object({
-  backgroundColor:      cssColorSchema.default(d.buttons.backgroundColor),
+  backgroundColor:      cssBackgroundSchema.default(d.buttons.backgroundColor),
   textColor:            cssColorSchema.default(d.buttons.textColor),
   hoverBackgroundColor: cssColorSchema.default(d.buttons.hoverBackgroundColor),
   borderRadius:         cssSizeSchema.default(d.buttons.borderRadius),
@@ -156,7 +156,7 @@ const themeButtonsSchema = z.object({
 });
 
 const themeCardSchema = z.object({
-  backgroundColor: cssColorSchema.default(d.card.backgroundColor),
+  backgroundColor: cssBackgroundSchema.default(d.card.backgroundColor),
   borderColor:     cssColorSchema.default(d.card.borderColor),
   borderWidth:     cssSizeSchema.default(d.card.borderWidth),
   borderRadius:    cssSizeSchema.default(d.card.borderRadius),

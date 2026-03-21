@@ -453,7 +453,7 @@ export function FormPreview({
                   disabled={submitted}
                   style={{
                     width: "100%",
-                    backgroundColor: "var(--theme-btn-bg)",
+                    background: "var(--theme-btn-bg)",
                     color: "var(--theme-btn-color)",
                     borderRadius: "var(--theme-btn-radius)",
                     padding: "var(--theme-btn-padding)",

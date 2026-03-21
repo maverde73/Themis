@@ -61,6 +61,8 @@ const COLOR_LABELS: Record<keyof ThemeColors, string> = {
 
 // Fields that support gradients (in addition to solid colors)
 const GRADIENT_FIELDS: Set<keyof ThemeColors> = new Set(["pageBackground", "surface"]);
+const GRADIENT_BTN_FIELDS: Set<keyof ThemeButtons> = new Set(["backgroundColor"]);
+const GRADIENT_CARD_FIELDS: Set<keyof ThemeCard> = new Set(["backgroundColor"]);
 
 
 const FONT_FAMILIES = [
@@ -97,7 +99,7 @@ function ThemeEditContent() {
   const [description, setDescription] = useState("");
   const [config, setConfig] = useState<ThemeConfig | null>(null);
   const [activeSection, setActiveSection] = useState<Section>("colors");
-  const [openPicker, setOpenPicker] = useState<keyof ThemeColors | null>(null);
+  const [openPicker, setOpenPicker] = useState<string | null>(null);
 
   const loadTheme = useCallback(async () => {
     try {
@@ -382,24 +384,45 @@ function ThemeEditContent() {
                       ["backgroundColor", "Sfondo"],
                       ["textColor", "Testo"],
                       ["hoverBackgroundColor", "Sfondo hover"],
-                    ] as const).map(([key, label]) => (
-                      <div key={key} className="flex flex-col gap-1.5">
-                        <Label className="text-xs">{label}</Label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={config.buttons[key] as string}
-                            onChange={(e) => updateButtons(key, e.target.value)}
-                            className="h-8 w-8 cursor-pointer rounded border"
-                          />
-                          <Input
-                            value={config.buttons[key] as string}
-                            onChange={(e) => updateButtons(key, e.target.value)}
-                            className="flex-1 font-mono text-xs"
-                          />
+                    ] as const).map(([key, label]) => {
+                      const val = config.buttons[key] as string;
+                      const pickerKey = `btn-${key}`;
+                      const pickerOpen = openPicker === pickerKey;
+                      const hasGradient = GRADIENT_BTN_FIELDS.has(key);
+                      return (
+                        <div key={key} className="flex flex-col gap-1.5">
+                          <Label className="text-xs">{label}</Label>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setOpenPicker(pickerOpen ? null : pickerKey)}
+                              className="h-8 w-8 shrink-0 cursor-pointer rounded border"
+                              style={{ background: val }}
+                            />
+                            <Input
+                              value={val}
+                              onChange={(e) => updateButtons(key, e.target.value)}
+                              className="flex-1 font-mono text-xs"
+                            />
+                          </div>
+                          {pickerOpen && (
+                            <div className="relative z-10 mt-1 rounded-lg border bg-popover p-3 shadow-lg">
+                              <ColorPicker
+                                value={val}
+                                onChange={(v: string) => updateButtons(key, v)}
+                                hideControls={!hasGradient}
+                                hidePresets
+                                hideEyeDrop
+                                hideAdvancedSliders
+                                hideColorGuide
+                                hideInputType
+                                width={260}
+                              />
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   <div className="grid gap-4 sm:grid-cols-3">
                     {([
@@ -433,24 +456,45 @@ function ThemeEditContent() {
                     {([
                       ["backgroundColor", "Sfondo"],
                       ["borderColor", "Bordo"],
-                    ] as const).map(([key, label]) => (
-                      <div key={key} className="flex flex-col gap-1.5">
-                        <Label className="text-xs">{label}</Label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={config.card[key]}
-                            onChange={(e) => updateCard(key, e.target.value)}
-                            className="h-8 w-8 cursor-pointer rounded border"
-                          />
-                          <Input
-                            value={config.card[key]}
-                            onChange={(e) => updateCard(key, e.target.value)}
-                            className="flex-1 font-mono text-xs"
-                          />
+                    ] as const).map(([key, label]) => {
+                      const val = config.card[key];
+                      const pickerKey = `card-${key}`;
+                      const pickerOpen = openPicker === pickerKey;
+                      const hasGradient = GRADIENT_CARD_FIELDS.has(key);
+                      return (
+                        <div key={key} className="flex flex-col gap-1.5">
+                          <Label className="text-xs">{label}</Label>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setOpenPicker(pickerOpen ? null : pickerKey)}
+                              className="h-8 w-8 shrink-0 cursor-pointer rounded border"
+                              style={{ background: val }}
+                            />
+                            <Input
+                              value={val}
+                              onChange={(e) => updateCard(key, e.target.value)}
+                              className="flex-1 font-mono text-xs"
+                            />
+                          </div>
+                          {pickerOpen && (
+                            <div className="relative z-10 mt-1 rounded-lg border bg-popover p-3 shadow-lg">
+                              <ColorPicker
+                                value={val}
+                                onChange={(v: string) => updateCard(key, v)}
+                                hideControls={!hasGradient}
+                                hidePresets
+                                hideEyeDrop
+                                hideAdvancedSliders
+                                hideColorGuide
+                                hideInputType
+                                width={260}
+                              />
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     {([
@@ -623,7 +667,7 @@ function ThemeMiniPreview({ config }: { config: ThemeConfig }) {
           type="button"
           style={{
             width: "100%",
-            backgroundColor: btn.backgroundColor as string,
+            background: btn.backgroundColor as string,
             color: btn.textColor as string,
             borderRadius: btn.borderRadius as string,
             padding: btn.padding as string,
