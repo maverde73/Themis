@@ -1,0 +1,105 @@
+{
+  "slug": "cruscotto-pdr125",
+  "catalogTitle": {
+    "it": "Cruscotto PdR 125:2022",
+    "en": "PdR 125:2022 Dashboard"
+  },
+  "catalogDescription": {
+    "it": "Cruscotto di monitoraggio per la conformità UNI/PdR 125:2022 (parità di genere)",
+    "en": "Monitoring dashboard for UNI/PdR 125:2022 (gender equality) compliance"
+  },
+  "config": {
+    "sections": [
+      {
+        "title": "Stato Operativo",
+        "columns": 4,
+        "widgets": [
+          {
+            "type": "metric-card",
+            "title": "Segnalazioni ricevute",
+            "dataSource": "reports_total",
+            "accessLevel": 4
+          },
+          {
+            "type": "status-list",
+            "title": "Stato gestione",
+            "dataSource": "reports_by_status",
+            "accessLevel": 2
+          },
+          {
+            "type": "sla-semaphore",
+            "title": "Conformità SLA",
+            "dataSource": "sla_compliance",
+            "accessLevel": 2
+          },
+          {
+            "type": "metric-card",
+            "title": "Tempo medio risoluzione",
+            "dataSource": "sla_avg_resolution_days",
+            "accessLevel": 4
+          }
+        ]
+      },
+      {
+        "title": "Analisi Qualitativa",
+        "columns": 2,
+        "widgets": [
+          {
+            "type": "pie-chart",
+            "title": "Natura della condotta",
+            "dataSource": "reports_by_category",
+            "accessLevel": 2
+          },
+          {
+            "type": "area-chart",
+            "title": "Andamento temporale",
+            "dataSource": "reports_timeline",
+            "accessLevel": 4
+          }
+        ]
+      },
+      {
+        "title": "Indicatori per Audit",
+        "columns": 3,
+        "widgets": [
+          {
+            "type": "pie-chart",
+            "title": "Anonime vs Nominali",
+            "dataSource": "reports_anonymous_vs_nominal",
+            "accessLevel": 4
+          },
+          {
+            "type": "bar-chart",
+            "title": "Esiti istruttoria",
+            "dataSource": "reports_by_outcome",
+            "accessLevel": 4
+          },
+          {
+            "type": "metric-card",
+            "title": "Con allegati",
+            "dataSource": "reports_with_attachments",
+            "accessLevel": 2
+          }
+        ]
+      },
+      {
+        "title": "Privacy",
+        "columns": 2,
+        "widgets": [
+          {
+            "type": "retention-countdown",
+            "title": "Data Retention",
+            "dataSource": "data_retention_countdown",
+            "accessLevel": 4
+          },
+          {
+            "type": "metric-card",
+            "title": "Totale tutti i canali",
+            "dataSource": "reports_total",
+            "accessLevel": 4
+          }
+        ]
+      }
+    ]
+  }
+}

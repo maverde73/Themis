@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   Palette,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { clearAuth, getStoredUser } from "@/lib/auth";
@@ -20,6 +21,9 @@ export interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  hideForRoles?: string[];
+  requirePermission?: "canEditSurveys" | "canEditThemes";
+  requireDataLevel?: boolean;
 }
 
 export interface SidebarProps {
@@ -28,11 +32,16 @@ export interface SidebarProps {
 }
 
 export const rpgNavItems: NavItem[] = [
-  { label: "Dashboard", href: "/rpg/dashboard", icon: LayoutDashboard },
-  { label: "Moduli", href: "/rpg/surveys", icon: ClipboardList },
-  { label: "Temi", href: "/rpg/surveys/themes", icon: Palette },
-  { label: "Analytics", href: "/rpg/analytics", icon: BarChart3 },
-  { label: "Impostazioni", href: "/rpg/settings", icon: Settings },
+  { label: "Dashboard", href: "/rpg/dashboard", icon: LayoutDashboard, requireDataLevel: true },
+  { label: "Moduli", href: "/rpg/surveys", icon: ClipboardList, requirePermission: "canEditSurveys" },
+  { label: "Temi", href: "/rpg/surveys/themes", icon: Palette, requirePermission: "canEditThemes" },
+  { label: "Cruscotto", href: "/rpg/analytics", icon: BarChart3, requireDataLevel: true },
+  { label: "Impostazioni", href: "/rpg/settings", icon: Settings, hideForRoles: ["TECHNICAL"] },
+];
+
+export const adminNavItems: NavItem[] = [
+  { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { label: "Organizzazioni", href: "/admin/organizations", icon: Building2 },
 ];
 
 export const odvNavItems: NavItem[] = [
@@ -72,7 +81,19 @@ export function Sidebar({ title, items }: SidebarProps) {
       {/* Navigation */}
       <nav aria-label="Navigazione principale" className="flex-1 px-2">
         <ul className="flex flex-col gap-0.5">
-          {items.map((item) => {
+          {items.filter((item) => {
+            if (!user) return true;
+            if (item.hideForRoles && item.hideForRoles.includes(user.role.toUpperCase())) return false;
+            const privileged = ["RPG", "ADMIN", "SUPER_ADMIN"].includes(user.role.toUpperCase());
+            if (item.requirePermission && !privileged) {
+              if (item.requirePermission === "canEditSurveys" && !user.canEditSurveys) return false;
+              if (item.requirePermission === "canEditThemes" && !user.canEditThemes) return false;
+            }
+            if (item.requireDataLevel && !privileged) {
+              if (user.dataLevel == null) return false;
+            }
+            return true;
+          }).map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(item.href + "/");
             const Icon = item.icon;
