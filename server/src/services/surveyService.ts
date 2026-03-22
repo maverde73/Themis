@@ -101,25 +101,28 @@ export async function submitResponse(surveyId: string, input: CreateSurveyRespon
     throw new AppError(400, "Survey is not accepting responses");
   }
 
-  // Extract the schema to check for private fields
+  // Extract the schema to check for non-public fields (accessLevel < 5)
   const schema = survey.schema as unknown as SurveySchemaDefinition;
-  const privateFieldIds = new Set(
+  const nonPublicFieldIds = new Set(
     schema.questions
-      .filter((q) => q.private === true)
+      .filter((q) => {
+        const level = q.accessLevel ?? (q.private ? 0 : 5);
+        return level < 5;
+      })
       .map((q) => q.id),
   );
 
-  // Reject if any private field keys are present in the answers
+  // Reject if any non-public field keys are present in the answers
   const submittedKeys = Object.keys(input.answers);
-  const rejectedKeys = submittedKeys.filter((key) => privateFieldIds.has(key));
+  const rejectedKeys = submittedKeys.filter((key) => nonPublicFieldIds.has(key));
   if (rejectedKeys.length > 0) {
     throw new AppError(
       400,
-      `Private fields must not be submitted to the server: ${rejectedKeys.join(", ")}`,
+      `Non-public fields must not be submitted to the server: ${rejectedKeys.join(", ")}`,
     );
   }
 
-  return prisma.surveyResponse.create({
+  const response = await prisma.surveyResponse.create({
     data: {
       surveyId,
       orgId: survey.orgId,
@@ -127,6 +130,27 @@ export async function submitResponse(surveyId: string, input: CreateSurveyRespon
       version: survey.version,
     },
   });
+
+  // If the survey has a report channel, create ReportMetadata
+  if (survey.channel === "PDR125" || survey.channel === "WHISTLEBLOWING") {
+    await createReportMetadataFromResponse(survey, input.answers);
+  }
+
+  return response;
+}
+
+export async function getPublicSurvey(id: string) {
+  const survey = await prisma.survey.findUnique({
+    where: { id },
+    include: { theme: { select: { id: true, name: true, config: true } } },
+  });
+  if (!survey) throw new AppError(404, "Survey not found");
+  if (survey.status !== "ACTIVE") throw new AppError(404, "Survey not found");
+  return survey;
+}
+
+export async function submitPublicResponse(surveyId: string, input: CreateSurveyResponseInput) {
+  return submitResponse(surveyId, input);
 }
 
 export async function getResponses(surveyId: string) {
@@ -136,5 +160,48 @@ export async function getResponses(surveyId: string) {
   return prisma.surveyResponse.findMany({
     where: { surveyId },
     orderBy: { submittedAt: "desc" },
+  });
+}
+
+// ── Report metadata from survey response ────────────────────────────
+
+async function createReportMetadataFromResponse(
+  survey: { orgId: string; channel: string | null },
+  answers: Record<string, unknown>,
+) {
+  const channel = survey.channel as "PDR125" | "WHISTLEBLOWING";
+
+  // Extract category — multi_choice returns an array, take the first
+  const rawCategory = answers.category;
+  const category = Array.isArray(rawCategory) ? rawCategory[0] as string : (rawCategory as string) ?? null;
+
+  // Extract identity flag from wants_contact
+  const wantsContact = answers.wants_contact as string | undefined;
+  const identityRevealed = wantsContact === "yes" ? true : wantsContact === "no" ? false : null;
+
+  // Calculate SLA deadlines from org config
+  const org = await prisma.organization.findUnique({
+    where: { id: survey.orgId },
+    select: { pdrSlaAckDays: true, pdrSlaResponseDays: true, wbSlaAckDays: true, wbSlaResponseDays: true },
+  });
+
+  const now = new Date();
+  const ackDays = channel === "PDR125" ? (org?.pdrSlaAckDays ?? 3) : (org?.wbSlaAckDays ?? 7);
+  const responseDays = channel === "PDR125" ? (org?.pdrSlaResponseDays ?? 45) : (org?.wbSlaResponseDays ?? 90);
+
+  const slaAckDeadline = new Date(now.getTime() + ackDays * 24 * 60 * 60 * 1000);
+  const slaResponseDeadline = new Date(now.getTime() + responseDays * 24 * 60 * 60 * 1000);
+
+  await prisma.reportMetadata.create({
+    data: {
+      orgId: survey.orgId,
+      channel,
+      category,
+      identityRevealed,
+      hasAttachments: false,
+      receivedAt: now,
+      slaAckDeadline,
+      slaResponseDeadline,
+    },
   });
 }
