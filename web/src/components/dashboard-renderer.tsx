@@ -7,7 +7,6 @@ import {
 import {
   Card, CardContent, CardHeader, CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import type { DashboardWithData, ResolvedSection, ResolvedWidget } from "@/lib/api";
 
 // ── Grid mapping ────────────────────────────────────────────────────
@@ -35,44 +34,71 @@ const STATUS_LABELS: Record<string, string> = {
   ACKNOWLEDGED: "Prese in carico",
   INVESTIGATING: "In istruttoria",
   RESPONSE_GIVEN: "Risposta data",
-  CLOSED_FOUNDED: "Chiuse - Fondate",
-  CLOSED_UNFOUNDED: "Chiuse - Infondate",
-  CLOSED_BAD_FAITH: "Chiuse - Malafede",
+  CLOSED_FOUNDED: "Chiuse — Fondate",
+  CLOSED_UNFOUNDED: "Chiuse — Infondate",
+  CLOSED_BAD_FAITH: "Chiuse — Malafede",
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  RECEIVED: "bg-blue-100 text-blue-800",
-  ACKNOWLEDGED: "bg-sky-100 text-sky-800",
-  INVESTIGATING: "bg-amber-100 text-amber-800",
-  RESPONSE_GIVEN: "bg-emerald-100 text-emerald-800",
-  CLOSED_FOUNDED: "bg-green-100 text-green-800",
-  CLOSED_UNFOUNDED: "bg-gray-100 text-gray-800",
-  CLOSED_BAD_FAITH: "bg-red-100 text-red-800",
+const STATUS_DOT_COLORS: Record<string, string> = {
+  RECEIVED: "bg-blue-500",
+  ACKNOWLEDGED: "bg-sky-500",
+  INVESTIGATING: "bg-amber-500",
+  RESPONSE_GIVEN: "bg-emerald-500",
+  CLOSED_FOUNDED: "bg-green-500",
+  CLOSED_UNFOUNDED: "bg-gray-400",
+  CLOSED_BAD_FAITH: "bg-red-500",
 };
 
 const CHART_COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
-  "#8884d8",
-  "#82ca9d",
-  "#ffc658",
+  "oklch(0.488 0.243 264)",
+  "oklch(0.600 0.160 240)",
+  "oklch(0.650 0.140 195)",
+  "oklch(0.541 0.200 280)",
+  "oklch(0.580 0.180 330)",
+  "oklch(0.700 0.120 145)",
+  "oklch(0.550 0.150 50)",
+  "oklch(0.620 0.100 310)",
 ];
 
+// ── Metric card accent colors (cycle by widget index) ───────────────
+
+const METRIC_ACCENTS = [
+  { border: "border-l-blue-500", icon: "text-blue-500", bg: "bg-blue-50" },
+  { border: "border-l-violet-500", icon: "text-violet-500", bg: "bg-violet-50" },
+  { border: "border-l-emerald-500", icon: "text-emerald-500", bg: "bg-emerald-50" },
+  { border: "border-l-amber-500", icon: "text-amber-500", bg: "bg-amber-50" },
+  { border: "border-l-rose-500", icon: "text-rose-500", bg: "bg-rose-50" },
+  { border: "border-l-cyan-500", icon: "text-cyan-500", bg: "bg-cyan-50" },
+];
+
+// ── Custom tooltip ──────────────────────────────────────────────────
+
+function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border bg-card px-3 py-2 text-xs shadow-lg ring-1 ring-foreground/5">
+      <p className="font-medium text-card-foreground">{label}</p>
+      <p className="tabular-nums text-muted-foreground">{payload[0].value}</p>
+    </div>
+  );
+}
+
 // ── Widget renderers ────────────────────────────────────────────────
+
+let metricIndex = 0;
 
 function MetricCardWidget({ widget }: { widget: ResolvedWidget }) {
   const data = widget.data as { value?: number; count?: number; withAttachments?: number; total?: number; percentage?: number } | null;
   if (!data) return <EmptyWidget title={widget.title} />;
+
+  const accent = METRIC_ACCENTS[metricIndex++ % METRIC_ACCENTS.length];
 
   let display: string;
   let subtitle: string | null = null;
 
   if (data.withAttachments !== undefined) {
     display = String(data.withAttachments);
-    subtitle = `${data.percentage ?? 0}% su ${data.total ?? 0}`;
+    subtitle = `${data.percentage ?? 0}% su ${data.total ?? 0} totali`;
   } else if (data.count !== undefined && data.count > 0) {
     display = `${data.value} gg`;
     subtitle = `su ${data.count} chiuse`;
@@ -81,12 +107,14 @@ function MetricCardWidget({ widget }: { widget: ResolvedWidget }) {
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <p className="text-sm text-muted-foreground">{widget.title}</p>
-        <p className="text-3xl font-bold tracking-tight">{display}</p>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+    <Card className={`border-l-4 ${accent.border}`}>
+      <CardHeader className="pb-1">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{widget.title}</p>
       </CardHeader>
+      <CardContent>
+        <p className="text-4xl font-bold tracking-tighter">{display}</p>
+        {subtitle && <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>}
+      </CardContent>
     </Card>
   );
 }
@@ -97,17 +125,17 @@ function BarChartWidget({ widget }: { widget: ResolvedWidget }) {
 
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{widget.title}</CardTitle>
+      <CardHeader className="pb-0">
+        <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">{widget.title}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-            <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-            <Tooltip />
-            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+      <CardContent className="pt-2">
+        <ResponsiveContainer width="100%" height={260}>
+          <BarChart data={data} barCategoryGap="20%">
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="oklch(0.9 0.01 270)" />
+            <XAxis dataKey="label" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={30} />
+            <Tooltip content={<ChartTooltip />} cursor={{ fill: "oklch(0.95 0.01 270)" }} />
+            <Bar dataKey="value" radius={[6, 6, 0, 0]}>
               {data.map((_, i) => (
                 <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
               ))}
@@ -130,11 +158,11 @@ function PieChartWidget({ widget }: { widget: ResolvedWidget }) {
 
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{widget.title}</CardTitle>
+      <CardHeader className="pb-0">
+        <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">{widget.title}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={250}>
+      <CardContent className="pt-2">
+        <ResponsiveContainer width="100%" height={260}>
           <PieChart>
             <Pie
               data={data}
@@ -142,16 +170,29 @@ function PieChartWidget({ widget }: { widget: ResolvedWidget }) {
               nameKey="label"
               cx="50%"
               cy="50%"
-              outerRadius={90}
-              label={({ name, value }) => `${name}: ${value}`}
+              innerRadius={55}
+              outerRadius={95}
+              strokeWidth={2}
+              stroke="oklch(1 0 0)"
+              paddingAngle={2}
             >
               {data.map((_, i) => (
                 <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip />
+            <Tooltip content={<ChartTooltip />} />
           </PieChart>
         </ResponsiveContainer>
+        {/* Legend */}
+        <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1">
+          {data.map((d, i) => (
+            <div key={d.label} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+              <span>{d.label}</span>
+              <span className="font-semibold text-foreground">{d.value}</span>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
@@ -163,22 +204,30 @@ function AreaChartWidget({ widget }: { widget: ResolvedWidget }) {
 
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{widget.title}</CardTitle>
+      <CardHeader className="pb-0">
+        <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">{widget.title}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={250}>
+      <CardContent className="pt-2">
+        <ResponsiveContainer width="100%" height={260}>
           <AreaChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-            <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-            <Tooltip />
+            <defs>
+              <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="oklch(0.488 0.243 264)" stopOpacity={0.3} />
+                <stop offset="100%" stopColor="oklch(0.488 0.243 264)" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="oklch(0.9 0.01 270)" />
+            <XAxis dataKey="label" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={30} />
+            <Tooltip content={<ChartTooltip />} />
             <Area
               type="monotone"
               dataKey="value"
-              stroke="hsl(var(--chart-1))"
-              fill="hsl(var(--chart-1))"
-              fillOpacity={0.2}
+              stroke="oklch(0.488 0.243 264)"
+              strokeWidth={2.5}
+              fill="url(#areaGradient)"
+              dot={{ r: 4, fill: "oklch(0.488 0.243 264)", strokeWidth: 2, stroke: "white" }}
+              activeDot={{ r: 6, strokeWidth: 2, stroke: "white" }}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -191,25 +240,39 @@ function StatusListWidget({ widget }: { widget: ResolvedWidget }) {
   const data = widget.data as { label: string; value: number }[] | null;
   if (!data || data.length === 0) return <EmptyWidget title={widget.title} />;
 
+  const total = data.reduce((s, d) => s + d.value, 0);
+
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{widget.title}</CardTitle>
+      <CardHeader className="pb-0">
+        <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">{widget.title}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <ul className="flex flex-col gap-2">
-          {data.map((item) => (
-            <li
-              key={item.label}
-              className="flex items-center justify-between rounded-lg bg-muted px-3 py-2"
-            >
-              <Badge className={STATUS_COLORS[item.label] || "bg-gray-100 text-gray-800"}>
-                {STATUS_LABELS[item.label] || item.label.replace(/_/g, " ").toLowerCase()}
-              </Badge>
-              <span className="text-sm font-semibold tabular-nums">{item.value}</span>
-            </li>
-          ))}
-        </ul>
+      <CardContent className="pt-3">
+        <div className="flex flex-col gap-2.5">
+          {data.map((item) => {
+            const pct = total > 0 ? (item.value / total) * 100 : 0;
+            return (
+              <div key={item.label} className="group">
+                <div className="mb-1 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`h-2 w-2 rounded-full ${STATUS_DOT_COLORS[item.label] || "bg-gray-400"}`} />
+                    <span className="text-sm">
+                      {STATUS_LABELS[item.label] || item.label.replace(/_/g, " ").toLowerCase()}
+                    </span>
+                  </div>
+                  <span className="text-sm font-semibold tabular-nums">{item.value}</span>
+                </div>
+                {/* Progress bar */}
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${STATUS_DOT_COLORS[item.label] || "bg-gray-400"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </CardContent>
     </Card>
   );
@@ -230,29 +293,46 @@ function SlaSemaphoreWidget({ widget }: { widget: ResolvedWidget }) {
   ];
 
   function semaphoreColor(pct: number) {
-    if (pct >= 90) return "bg-green-500";
-    if (pct >= 70) return "bg-yellow-500";
-    return "bg-red-500";
+    if (pct >= 90) return { dot: "bg-emerald-500", bar: "bg-emerald-500", ring: "ring-emerald-500/20" };
+    if (pct >= 70) return { dot: "bg-amber-500", bar: "bg-amber-500", ring: "ring-amber-500/20" };
+    return { dot: "bg-red-500", bar: "bg-red-500", ring: "ring-red-500/20" };
   }
 
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{widget.title}</CardTitle>
+      <CardHeader className="pb-0">
+        <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">{widget.title}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-3">
-          {lights.map((l) => (
-            <div key={l.label} className="flex items-center gap-3">
-              <div className={`h-4 w-4 shrink-0 rounded-full ${semaphoreColor(l.value)}`} />
-              <span className="text-sm">{l.label}</span>
-              <span className="ml-auto text-sm font-semibold tabular-nums">{l.value}%</span>
-            </div>
-          ))}
+      <CardContent className="pt-3">
+        <div className="flex flex-col gap-4">
+          {lights.map((l) => {
+            const colors = semaphoreColor(l.value);
+            return (
+              <div key={l.label}>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`h-3 w-3 rounded-full ring-4 ${colors.dot} ${colors.ring}`} />
+                    <span className="text-sm font-medium">{l.label}</span>
+                  </div>
+                  <span className="text-lg font-bold tabular-nums">{l.value}%</span>
+                </div>
+                {/* Progress bar */}
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${colors.bar}`}
+                    style={{ width: `${l.value}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
           {(data.overdue ?? 0) > 0 && (
-            <p className="text-xs text-destructive">
-              {data.overdue} segnalazioni scadute
-            </p>
+            <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+              <p className="text-xs font-medium text-red-700">
+                {data.overdue} segnalazioni scadute
+              </p>
+            </div>
           )}
         </div>
       </CardContent>
@@ -266,38 +346,45 @@ function RetentionCountdownWidget({ widget }: { widget: ResolvedWidget }) {
 
   if (data.daysRemaining == null) {
     return (
-      <Card>
-        <CardHeader className="pb-2">
-          <p className="text-sm text-muted-foreground">{widget.title}</p>
-          <p className="text-lg font-semibold">Nessun dato chiuso</p>
+      <Card className="border-l-4 border-l-gray-300">
+        <CardHeader className="pb-1">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{widget.title}</p>
         </CardHeader>
+        <CardContent>
+          <p className="text-lg font-semibold text-muted-foreground">Nessun dato chiuso</p>
+        </CardContent>
       </Card>
     );
   }
 
   const endDate = data.retentionEnd
-    ? new Date(data.retentionEnd).toLocaleDateString("it-IT")
+    ? new Date(data.retentionEnd).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" })
     : "N/D";
 
+  const urgent = data.daysRemaining < 365;
+
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <p className="text-sm text-muted-foreground">{widget.title}</p>
-        <p className="text-3xl font-bold tracking-tight">
-          {data.daysRemaining} <span className="text-base font-normal text-muted-foreground">giorni</span>
-        </p>
-        <p className="text-xs text-muted-foreground">Scadenza: {endDate}</p>
+    <Card className={`border-l-4 ${urgent ? "border-l-amber-500" : "border-l-emerald-500"}`}>
+      <CardHeader className="pb-1">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{widget.title}</p>
       </CardHeader>
+      <CardContent>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-4xl font-bold tracking-tighter">{data.daysRemaining}</span>
+          <span className="text-sm font-medium text-muted-foreground">giorni restanti</span>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">Scadenza: {endDate}</p>
+      </CardContent>
     </Card>
   );
 }
 
 function EmptyWidget({ title }: { title: string }) {
   return (
-    <Card>
+    <Card className="border-dashed">
       <CardHeader>
-        <p className="text-sm text-muted-foreground">{title}</p>
-        <p className="text-sm italic text-muted-foreground">Nessun dato</p>
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{title}</p>
+        <p className="text-sm italic text-muted-foreground/60">Nessun dato disponibile</p>
       </CardHeader>
     </Card>
   );
@@ -329,7 +416,10 @@ function SectionRenderer({ section }: { section: ResolvedSection }) {
 
   return (
     <section>
-      <h2 className="mb-3 text-lg font-semibold">{section.title}</h2>
+      <div className="mb-4 flex items-center gap-3">
+        <h2 className="text-base font-semibold tracking-tight">{section.title}</h2>
+        <div className="h-px flex-1 bg-border" />
+      </div>
       <div className={`grid gap-4 grid-cols-1 ${gridClass}`}>
         {section.widgets.map((widget, i) => (
           <WidgetRenderer key={`${widget.type}-${i}`} widget={widget} />
@@ -348,16 +438,19 @@ interface DashboardRendererProps {
 export function DashboardRenderer({ dashboard }: DashboardRendererProps) {
   const { sections } = dashboard.resolvedData;
 
+  // Reset metric accent counter on each render
+  metricIndex = 0;
+
   if (sections.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed p-8 text-center">
+      <div className="rounded-xl border border-dashed p-12 text-center">
         <p className="text-muted-foreground">Nessun widget visibile per il tuo livello di accesso.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       {sections.map((section, i) => (
         <SectionRenderer key={`${section.title}-${i}`} section={section} />
       ))}
