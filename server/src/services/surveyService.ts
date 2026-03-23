@@ -1,5 +1,6 @@
 import { prisma } from "../utils/prisma";
 import { AppError } from "../middleware/errorHandler";
+import { appendAuditLog } from "./auditService";
 import type {
   CreateSurveyInput,
   UpdateSurveyInput,
@@ -165,11 +166,33 @@ export async function getResponses(surveyId: string) {
 
 // ── Report metadata from survey response ────────────────────────────
 
-async function createReportMetadataFromResponse(
+const MAX_TIMESTAMP_DRIFT_MS = 5 * 60 * 1000; // ±5 minutes
+
+export async function createReportMetadataFromResponse(
   survey: { orgId: string; channel: string | null },
   answers: Record<string, unknown>,
+  nostrPubkey?: string,
+  eventCreatedAt?: number,
 ) {
   const channel = survey.channel as "PDR125" | "WHISTLEBLOWING";
+
+  // Use the signed Nostr event timestamp as authoritative receivedAt.
+  // Reject events with timestamp too far from server time.
+  const now = Date.now();
+  let receivedAt: Date;
+  if (eventCreatedAt != null) {
+    const eventMs = eventCreatedAt * 1000;
+    const drift = Math.abs(now - eventMs);
+    if (drift > MAX_TIMESTAMP_DRIFT_MS) {
+      console.warn(
+        `Report: rejecting event with timestamp drift ${Math.round(drift / 1000)}s (max ${MAX_TIMESTAMP_DRIFT_MS / 1000}s)`,
+      );
+      return;
+    }
+    receivedAt = new Date(eventMs);
+  } else {
+    receivedAt = new Date(now);
+  }
 
   // Extract category — multi_choice returns an array, take the first
   const rawCategory = answers.category;
@@ -185,23 +208,33 @@ async function createReportMetadataFromResponse(
     select: { pdrSlaAckDays: true, pdrSlaResponseDays: true, wbSlaAckDays: true, wbSlaResponseDays: true },
   });
 
-  const now = new Date();
   const ackDays = channel === "PDR125" ? (org?.pdrSlaAckDays ?? 3) : (org?.wbSlaAckDays ?? 7);
   const responseDays = channel === "PDR125" ? (org?.pdrSlaResponseDays ?? 45) : (org?.wbSlaResponseDays ?? 90);
 
-  const slaAckDeadline = new Date(now.getTime() + ackDays * 24 * 60 * 60 * 1000);
-  const slaResponseDeadline = new Date(now.getTime() + responseDays * 24 * 60 * 60 * 1000);
+  const slaAckDeadline = new Date(receivedAt.getTime() + ackDays * 24 * 60 * 60 * 1000);
+  const slaResponseDeadline = new Date(receivedAt.getTime() + responseDays * 24 * 60 * 60 * 1000);
 
-  await prisma.reportMetadata.create({
+  const report = await prisma.reportMetadata.create({
     data: {
       orgId: survey.orgId,
       channel,
       category,
       identityRevealed,
       hasAttachments: false,
-      receivedAt: now,
+      receivedAt,
       slaAckDeadline,
       slaResponseDeadline,
+      ...(nostrPubkey && { nostrPubkey }),
     },
+  });
+
+  // Append to tamper-evident audit log
+  await appendAuditLog("ReportMetadata", report.id, "CREATE", {
+    orgId: survey.orgId,
+    channel,
+    category,
+    receivedAt: receivedAt.toISOString(),
+    nostrPubkey: nostrPubkey ?? null,
+    eventCreatedAt: eventCreatedAt ?? null,
   });
 }

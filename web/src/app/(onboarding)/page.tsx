@@ -142,7 +142,7 @@ export default function OnboardingPage() {
     <main className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Themis</h1>
+          <h1 className="font-heading text-3xl font-bold tracking-tight">Themis</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Piattaforma zero-knowledge per compliance
           </p>
@@ -170,7 +170,7 @@ export default function OnboardingPage() {
             <CardDescription>
               {step === 1 && "Inserisci il nome dell'organizzazione e seleziona un piano."}
               {step === 2 && "Invita la RPG e l'OdV a configurare l'app sui loro dispositivi."}
-              {step === 3 && "La piattaforma è pronta. I dipendenti possono iniziare a inviare segnalazioni."}
+              {step === 3 && "Configurazione completata! Accedi e vai a Impostazioni per generare il QR code per i dipendenti."}
             </CardDescription>
           </CardHeader>
 

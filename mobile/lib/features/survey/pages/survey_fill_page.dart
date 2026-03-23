@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:themis_survey/themis_survey.dart';
+import '../../../core/survey/survey.dart';
 
+import '../../../core/constants.dart';
 import '../../../core/styx/styx_provider.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../form/providers/form_list_provider.dart';
 import '../providers/survey_provider.dart';
 
 class SurveyFillPage extends ConsumerStatefulWidget {
@@ -19,6 +21,9 @@ class SurveyFillPage extends ConsumerStatefulWidget {
 class _SurveyFillPageState extends ConsumerState<SurveyFillPage> {
   bool _alreadyResponded = false;
   bool _checkingResponse = true;
+
+  String get _deviceLocale =>
+      WidgetsBinding.instance.platformDispatcher.locale.languageCode;
 
   @override
   void initState() {
@@ -37,7 +42,8 @@ class _SurveyFillPageState extends ConsumerState<SurveyFillPage> {
   }
 
   Future<void> _handleSubmit(SurveySubmission submission) async {
-    final client = ref.read(surveyApiClientProvider);
+    final tm = await ref.read(tokenManagerProvider.future);
+    final client = SurveyApiClient(baseUrl: apiBaseUrl, tokenManager: tm);
 
     // 1. Submit public answers to server
     await client.submitPublicAnswers(
@@ -114,7 +120,8 @@ class _SurveyFillPageState extends ConsumerState<SurveyFillPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: surveyAsync.whenOrNull(data: (s) => Text(s.title)) ??
+        title: surveyAsync.whenOrNull(
+                data: (s) => Text(s.schema.title.resolve(_deviceLocale))) ??
             Text(l10n.surveys),
       ),
       body: surveyAsync.when(
@@ -136,6 +143,7 @@ class _SurveyFillPageState extends ConsumerState<SurveyFillPage> {
             schema: survey.schema,
             onSubmit: _handleSubmit,
             submitLabel: l10n.submit,
+            locale: _deviceLocale,
           );
         },
       ),

@@ -22,16 +22,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chooseReportType => 'Choose the type of report';
 
   @override
-  String get reportHarassment => 'Report harassment';
-
-  @override
-  String get reportHarassmentSubtitle => 'PdR 125 — Gender equality';
-
-  @override
-  String get reportMisconduct => 'Report misconduct';
-
-  @override
-  String get reportMisconductSubtitle => 'Whistleblowing — D.Lgs. 24/2023';
+  String get noActiveForms => 'No forms available. Contact your organization.';
 
   @override
   String get fillSurvey => 'Fill survey';
@@ -75,7 +66,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noActiveSurveys => 'No active surveys available.';
 
   @override
-  String get surveySubmitted => 'Survey submitted successfully';
+  String get surveySubmitted => 'Submitted successfully';
 
   @override
   String get alreadySubmitted => 'You have already submitted this survey.';

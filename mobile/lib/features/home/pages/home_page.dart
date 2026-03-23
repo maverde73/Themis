@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/models/form_extensions.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../form/providers/form_list_provider.dart';
 import '../../pairing/providers/pairing_provider.dart';
-import '../../survey/providers/survey_provider.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -65,55 +66,116 @@ class _UnpairedView extends StatelessWidget {
   }
 }
 
+/// Map of icon name strings (from the server) to Material Icons.
+const _iconMap = <String, IconData>{
+  'shield': Icons.shield,
+  'gavel': Icons.gavel,
+  'assignment': Icons.assignment,
+  'report': Icons.report,
+  'warning': Icons.warning,
+  'security': Icons.security,
+  'lock': Icons.lock,
+  'flag': Icons.flag,
+  'person': Icons.person,
+  'group': Icons.group,
+};
+
+IconData _resolveIcon(String? iconName) {
+  if (iconName == null) return Icons.description;
+  return _iconMap[iconName] ?? Icons.description;
+}
+
 class _PairedView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final surveysAsync = ref.watch(activeSurveysProvider);
-    final hasSurveys = surveysAsync.whenOrNull(data: (s) => s.isNotEmpty) ?? false;
+    final formsAsync = ref.watch(activeFormsProvider);
+    final locale = WidgetsBinding.instance.platformDispatcher.locale.languageCode;
 
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Icon(Icons.verified_user, size: 64, color: theme.colorScheme.primary),
-          const SizedBox(height: 16),
-          Text(
-            l10n.chooseReportType,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 32),
-          _ReportButton(
-            icon: Icons.shield,
-            label: l10n.reportHarassment,
-            subtitle: l10n.reportHarassmentSubtitle,
-            color: theme.colorScheme.primary,
-            onPressed: () => context.push('/report-pdr'),
-          ),
-          const SizedBox(height: 16),
-          _ReportButton(
-            icon: Icons.gavel,
-            label: l10n.reportMisconduct,
-            subtitle: l10n.reportMisconductSubtitle,
-            color: theme.colorScheme.tertiary,
-            onPressed: () => context.push('/report-wb'),
-          ),
-          if (hasSurveys) ...[
-            const SizedBox(height: 16),
-            _ReportButton(
-              icon: Icons.assignment,
-              label: l10n.fillSurvey,
-              subtitle: l10n.fillSurveySubtitle,
-              color: theme.colorScheme.secondary,
-              onPressed: () => context.push('/surveys'),
+    return formsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, _) => Center(child: Text('${l10n.error}: $err')),
+      data: (forms) {
+        if (forms.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.verified_user, size: 64, color: theme.colorScheme.primary),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.noActiveForms,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyLarge,
+                  ),
+                ],
+              ),
             ),
-          ],
-        ],
-      ),
+          );
+        }
+
+        // Separate encrypted reports (have channel) and surveys (no channel)
+        final reports = forms.where((f) => f.isEncryptedReport).toList();
+        final surveys = forms.where((f) => !f.isEncryptedReport).toList();
+
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Icon(Icons.verified_user, size: 64, color: theme.colorScheme.primary),
+              const SizedBox(height: 16),
+              if (reports.isNotEmpty)
+                Text(
+                  l10n.chooseReportType,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineSmall,
+                ),
+              const SizedBox(height: 24),
+
+              // Dynamic report buttons
+              for (final form in reports) ...[
+                _ReportButton(
+                  icon: _resolveIcon(form.icon),
+                  label: form.schema?.buttonLabel?.resolve(locale)
+                      ?? form.schema?.title.resolve(locale)
+                      ?? form.title,
+                  subtitle: form.schema?.buttonDescription?.resolve(locale)
+                      ?? form.schema?.description?.resolve(locale)
+                      ?? form.description
+                      ?? '',
+                  color: form.channel == 'PDR125'
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.tertiary,
+                  onPressed: () => context.push('/form/${form.id}'),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Dynamic survey buttons
+              for (final form in surveys) ...[
+                _ReportButton(
+                  icon: _resolveIcon(form.icon ?? 'assignment'),
+                  label: form.schema?.buttonLabel?.resolve(locale)
+                      ?? form.schema?.title.resolve(locale)
+                      ?? form.title,
+                  subtitle: form.schema?.buttonDescription?.resolve(locale)
+                      ?? form.schema?.description?.resolve(locale)
+                      ?? form.description
+                      ?? '',
+                  color: theme.colorScheme.secondary,
+                  onPressed: () => context.push('/form/${form.id}'),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

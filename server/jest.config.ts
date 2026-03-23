@@ -8,6 +8,14 @@ const config: Config = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
+  resolver: "<rootDir>/jest-resolver.cjs",
+  transformIgnorePatterns: [
+    "node_modules/(?!(@noble|@paralleldrive/cuid2)/)",
+  ],
+  transform: {
+    "^.+\\.tsx?$": "ts-jest",
+    ".+\\.js$": "ts-jest",
+  },
 };
 
 export default config;

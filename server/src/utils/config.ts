@@ -11,4 +11,12 @@ export const config = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "24h",
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
   corsOrigins: process.env.CORS_ORIGINS?.split(",") || ["http://localhost:3000"],
+  aiProvider: process.env.AI_PROVIDER || "anthropic",
+  aiModel: process.env.AI_MODEL || "claude-sonnet-4-20250514",
+  aiApiKey: process.env.AI_API_KEY || "",
+  superAdminEmail: process.env.SUPER_ADMIN_EMAIL || "",
+  superAdminPassword: process.env.SUPER_ADMIN_PASSWORD || "",
+  nostrPrivkey: process.env.NOSTR_PRIVKEY || "",
+  relayUrls: (process.env.RELAY_URLS || "ws://localhost:7777").split(",").map((s) => s.trim()),
+  nostrPowDifficulty: parseInt(process.env.NOSTR_POW_DIFFICULTY || "20", 10),
 } as const;

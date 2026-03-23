@@ -1,21 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Shield, Gavel, FileText, AlertTriangle } from "lucide-react";
+import { Plus, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2, FileText, Copy, Link, Check } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -24,16 +15,34 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   getSurveys,
   createSurvey,
-  updateSurvey,
+  deleteSurvey,
   importTemplate,
+  listTemplates,
   type Survey,
   type SurveyStatus,
-  type FormKind,
   type FormChannel,
+  type TemplateCatalogEntry,
 } from "@/lib/api";
 import { getStoredUser, isAuthenticated } from "@/lib/auth";
+import { PageHeader } from "@/components/page-header";
+import { SkeletonPage } from "@/components/skeleton-page";
 
 // ── Constants ──────────────────────────────────────────────────────────
 
@@ -46,50 +55,24 @@ const STATUS_BADGE: Record<SurveyStatus, { label: string; variant: BadgeVariant 
   ARCHIVED: { label: "Archiviato", variant: "destructive" },
 };
 
-const KIND_BADGE: Record<FormKind, { label: string; variant: BadgeVariant }> = {
-  SURVEY: { label: "Questionario", variant: "outline" },
-  REPORT: { label: "Segnalazione", variant: "secondary" },
-};
-
 const CHANNEL_LABEL: Record<FormChannel, string> = {
   PDR125: "PdR 125",
   WHISTLEBLOWING: "Whistleblowing",
 };
 
-const TEMPLATE_CATALOG = [
-  {
-    id: "pdr125" as const,
-    title: "Segnalazione Abusi e Molestie",
-    description: "Modulo conforme UNI/PdR 125:2022",
-    channel: "PDR125" as FormChannel,
-    icon: Shield,
-  },
-  {
-    id: "wb" as const,
-    title: "Segnalazione Whistleblowing",
-    description: "Modulo conforme D.Lgs. 24/2023",
-    channel: "WHISTLEBLOWING" as FormChannel,
-    icon: Gavel,
-  },
-];
+const DEFAULT_SCHEMA = {
+  title: { it: "", en: "" },
+  questions: [
+    {
+      id: "q1",
+      type: "text",
+      label: { it: "Domanda", en: "Question" },
+      required: true,
+    },
+  ],
+};
 
-const DEFAULT_SCHEMA = JSON.stringify(
-  {
-    title: { it: "", en: "" },
-    questions: [
-      {
-        id: "q1",
-        type: "text",
-        label: { it: "Domanda", en: "Question" },
-        required: true,
-      },
-    ],
-  },
-  null,
-  2,
-);
-
-type FilterKind = "ALL" | "SURVEY" | "REPORT";
+const PAGE_SIZE = 10;
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
@@ -98,9 +81,9 @@ function statusBadge(status: SurveyStatus) {
   return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
 }
 
-function kindBadge(kind: FormKind) {
-  const cfg = KIND_BADGE[kind];
-  return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
+function channelBadge(channel: FormChannel | null) {
+  if (!channel) return <span className="text-muted-foreground">-</span>;
+  return <Badge variant="outline">{CHANNEL_LABEL[channel]}</Badge>;
 }
 
 function formatDate(iso: string): string {
@@ -111,25 +94,46 @@ function formatDate(iso: string): string {
   });
 }
 
+// ── Types ──────────────────────────────────────────────────────────────
+
+type SortField = "title" | "status" | "createdAt" | "responseCount";
+type SortDirection = "asc" | "desc";
+
 // ── Page component ──────────────────────────────────────────────────────
 
 export default function SurveysPage() {
   const router = useRouter();
+
+  // Data
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [filterKind, setFilterKind] = useState<FilterKind>("ALL");
 
-  // Create form state
-  const [formTitle, setFormTitle] = useState("");
-  const [formDescription, setFormDescription] = useState("");
-  const [formSchema, setFormSchema] = useState(DEFAULT_SCHEMA);
-  const [formKind, setFormKind] = useState<FormKind>("SURVEY");
-  const [formChannel, setFormChannel] = useState<FormChannel>("PDR125");
-  const [formError, setFormError] = useState<string | null>(null);
-  const [formSubmitting, setFormSubmitting] = useState(false);
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<SurveyStatus | "ALL">("ALL");
+  const [channelFilter, setChannelFilter] = useState<FormChannel | "ALL">("ALL");
+
+  // Sort
+  const [sortField, setSortField] = useState<SortField>("createdAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Actions
+  const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  // Link copy
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // New module sheet
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetStep, setSheetStep] = useState<"choose" | "templates">("choose");
+  const [templates, setTemplates] = useState<TemplateCatalogEntry[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [importingTemplate, setImportingTemplate] = useState<string | null>(null);
 
   const user = getStoredUser();
   const orgId = user?.orgId;
@@ -156,425 +160,443 @@ export default function SurveysPage() {
     fetchSurveys();
   }, [router, fetchSurveys]);
 
-  // ── Template import ────────────────────────────────────────────────
+  // ── Filter + Sort + Paginate ────────────────────────────────────────
 
-  async function handleImport(templateId: "pdr125" | "wb") {
-    if (!orgId) return;
-    setActionLoading(templateId);
-    try {
-      await importTemplate(orgId, templateId);
-      await fetchSurveys();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to import template");
-    } finally {
-      setActionLoading(null);
+  const filtered = useMemo(() => {
+    let result = surveys;
+
+    // Search
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter((s) => s.title.toLowerCase().includes(q));
+    }
+
+    // Status filter
+    if (statusFilter !== "ALL") {
+      result = result.filter((s) => s.status === statusFilter);
+    }
+
+    // Channel filter
+    if (channelFilter !== "ALL") {
+      result = result.filter((s) => s.channel === channelFilter);
+    }
+
+    // Sort
+    result = [...result].sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case "title":
+          cmp = a.title.localeCompare(b.title, "it");
+          break;
+        case "status":
+          cmp = a.status.localeCompare(b.status);
+          break;
+        case "createdAt":
+          cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          break;
+        case "responseCount":
+          cmp = a.responseCount - b.responseCount;
+          break;
+      }
+      return sortDirection === "asc" ? cmp : -cmp;
+    });
+
+    return result;
+  }, [surveys, searchQuery, statusFilter, channelFilter, sortField, sortDirection]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, channelFilter]);
+
+  // ── Actions ─────────────────────────────────────────────────────────
+
+  function handleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
     }
   }
 
-  // ── Create survey handler ─────────────────────────────────────────
+  function SortIcon({ field }: { field: SortField }) {
+    if (sortField !== field) return <ArrowUpDown className="ml-1 inline h-3.5 w-3.5 text-muted-foreground/50" />;
+    return sortDirection === "asc"
+      ? <ArrowUp className="ml-1 inline h-3.5 w-3.5" />
+      : <ArrowDown className="ml-1 inline h-3.5 w-3.5" />;
+  }
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    setFormError(null);
+  function openNewSheet() {
+    setSheetStep("choose");
+    setSheetOpen(true);
+  }
+
+  async function handleBlankCreate() {
     if (!orgId) return;
-
-    const trimmedTitle = formTitle.trim();
-    if (!trimmedTitle) {
-      setFormError("Il titolo è obbligatorio");
-      return;
-    }
-
-    let parsedSchema: Record<string, unknown>;
+    setCreating(true);
+    setSheetOpen(false);
     try {
-      parsedSchema = JSON.parse(formSchema);
-    } catch {
-      setFormError("Lo schema deve essere JSON valido");
-      return;
-    }
-
-    setFormSubmitting(true);
-    try {
-      await createSurvey({
+      const created = await createSurvey({
         orgId,
-        title: trimmedTitle,
-        description: formDescription.trim() || undefined,
-        schema: parsedSchema,
-        kind: formKind,
-        channel: formKind === "REPORT" ? formChannel : undefined,
+        title: "Nuovo modulo",
+        schema: DEFAULT_SCHEMA,
       });
-
-      setFormTitle("");
-      setFormDescription("");
-      setFormSchema(DEFAULT_SCHEMA);
-      setFormKind("SURVEY");
-      setShowCreateForm(false);
-      await fetchSurveys();
+      router.push(`/rpg/surveys/edit?surveyId=${created.id}`);
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Failed to create survey");
-    } finally {
-      setFormSubmitting(false);
+      setError(err instanceof Error ? err.message : "Errore nella creazione");
+      setCreating(false);
     }
   }
 
-  // ── Status toggle ─────────────────────────────────────────────────
+  async function handleShowTemplates() {
+    setSheetStep("templates");
+    if (templates.length === 0) {
+      setTemplatesLoading(true);
+      try {
+        const data = await listTemplates();
+        setTemplates(data);
+      } catch {
+        setError("Errore nel caricamento dei template");
+      } finally {
+        setTemplatesLoading(false);
+      }
+    }
+  }
 
-  async function handleStatusChange(id: string, status: SurveyStatus) {
-    setActionLoading(id);
+  async function handleImportTemplate(templateId: string) {
+    if (!orgId) return;
+    setImportingTemplate(templateId);
     try {
-      await updateSurvey(id, { status });
-      await fetchSurveys();
+      const created = await importTemplate(orgId, templateId);
+      setSheetOpen(false);
+      if (created.length > 0) {
+        router.push(`/rpg/surveys/edit?surveyId=${created[0].id}`);
+      } else {
+        await fetchSurveys();
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update survey");
+      setError(err instanceof Error ? err.message : "Errore nell'importazione");
     } finally {
-      setActionLoading(null);
+      setImportingTemplate(null);
     }
   }
 
-  // ── Filter ────────────────────────────────────────────────────────
+  async function handleCopyFormLink(surveyId: string) {
+    const url = `${window.location.origin}/s/${surveyId}`;
+    await navigator.clipboard.writeText(url);
+    setCopiedId(surveyId);
+    setTimeout(() => setCopiedId(null), 2000);
+  }
 
-  const filteredSurveys =
-    filterKind === "ALL"
-      ? surveys
-      : surveys.filter((s) => s.kind === filterKind);
-
-  const activeCount = surveys.filter((s) => s.status === "ACTIVE").length;
-
-  // ── Check if template already imported ────────────────────────────
-
-  function isTemplateImported(channel: FormChannel) {
-    return surveys.some((s) => s.kind === "REPORT" && s.channel === channel);
+  async function handleDelete(survey: Survey) {
+    if (!confirm(`Eliminare "${survey.title}"? Questa azione non è reversibile.`)) return;
+    setDeleting(survey.id);
+    try {
+      await deleteSurvey(survey.id);
+      setSurveys((prev) => prev.filter((s) => s.id !== survey.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore nell'eliminazione");
+    } finally {
+      setDeleting(null);
+    }
   }
 
   // ── Render ────────────────────────────────────────────────────────
 
   if (loading) {
-    return (
-      <main className="flex flex-1 items-center justify-center p-6">
-        <p className="text-muted-foreground">Caricamento moduli...</p>
-      </main>
-    );
-  }
-
-  if (error && surveys.length === 0) {
-    return (
-      <main className="flex flex-1 items-center justify-center p-6">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Errore</CardTitle>
-            <CardDescription>{error}</CardDescription>
-          </CardHeader>
-        </Card>
-      </main>
-    );
+    return <SkeletonPage />;
   }
 
   return (
-    <main className="flex flex-col gap-6 p-6">
-      {/* ── Header ──────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Moduli</h2>
-          <p className="text-sm text-muted-foreground">
-            {surveys.length} moduli &middot; {activeCount} attivi
-          </p>
-        </div>
-        <Button
-          onClick={() => setShowCreateForm((prev) => !prev)}
-          variant={showCreateForm ? "outline" : "default"}
-        >
-          {showCreateForm ? "Annulla" : "Nuovo modulo"}
-        </Button>
-      </div>
+    <div className="flex flex-col gap-6">
+      {/* Header */}
+      <PageHeader
+        title="Moduli"
+        subtitle={`${surveys.length} moduli \u00b7 ${surveys.filter((s) => s.status === "ACTIVE").length} attivi`}
+        actions={
+          <Button onClick={openNewSheet} disabled={creating}>
+            <Plus className="mr-2 h-4 w-4" />
+            {creating ? "Creazione..." : "Nuovo modulo"}
+          </Button>
+        }
+      />
 
-      {/* Inline error banner */}
-      {error && (
-        <Card className="border-destructive/50 bg-destructive/5">
-          <CardContent className="py-3">
-            <p className="text-sm text-destructive">{error}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ── Template catalog ────────────────────────────────────────── */}
-      <section>
-        <h3 className="mb-3 text-sm font-medium text-muted-foreground">
-          Catalogo template
-        </h3>
-        <div className="grid gap-4 md:grid-cols-2">
-          {TEMPLATE_CATALOG.map((tpl) => {
-            const imported = isTemplateImported(tpl.channel);
-            const Icon = tpl.icon;
-            const isLoading = actionLoading === tpl.id;
-            return (
-              <Card key={tpl.id} className="flex flex-col">
-                <CardHeader className="flex-row items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <Icon className="h-5 w-5 text-primary" />
+      {/* New module sheet */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent>
+          {sheetStep === "choose" ? (
+            <>
+              <SheetHeader>
+                <SheetTitle>Nuovo modulo</SheetTitle>
+                <SheetDescription>
+                  Scegli come creare il nuovo modulo.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="flex flex-col gap-3 p-6">
+                <button
+                  type="button"
+                  className="flex items-start gap-4 rounded-lg border p-4 text-left transition-colors hover:bg-muted/50"
+                  onClick={handleBlankCreate}
+                >
+                  <FileText className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">Modulo vuoto</p>
+                    <p className="text-sm text-muted-foreground">
+                      Crea da zero e usa l&apos;assistente AI per compilarlo.
+                    </p>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <CardTitle className="text-base">{tpl.title}</CardTitle>
-                    <CardDescription>{tpl.description}</CardDescription>
+                </button>
+                <button
+                  type="button"
+                  className="flex items-start gap-4 rounded-lg border p-4 text-left transition-colors hover:bg-muted/50"
+                  onClick={handleShowTemplates}
+                >
+                  <Copy className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">Da template</p>
+                    <p className="text-sm text-muted-foreground">
+                      Parti da un modello predefinito e personalizzalo.
+                    </p>
                   </div>
-                </CardHeader>
-                <CardFooter className="mt-auto">
-                  {imported ? (
-                    <Badge variant="outline" className="gap-1.5">
-                      <FileText className="h-3 w-3" />
-                      Già importato
-                    </Badge>
-                  ) : (
-                    <Button
-                      size="sm"
-                      onClick={() => handleImport(tpl.id)}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Importazione..." : "Importa"}
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── Create form ─────────────────────────────────────────────── */}
-      {showCreateForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Nuovo modulo</CardTitle>
-            <CardDescription>
-              Definisci titolo, tipo e schema JSON del modulo.
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleCreate}>
-            <CardContent className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="survey-title">Titolo *</Label>
-                <Input
-                  id="survey-title"
-                  placeholder="es. Clima aziendale 2026"
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  required
-                  aria-required="true"
-                />
+                </button>
               </div>
-
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="survey-description">Descrizione</Label>
-                <textarea
-                  id="survey-description"
-                  className="min-h-[60px] w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
-                  placeholder="Descrizione opzionale"
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  rows={2}
-                />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="flex flex-col gap-1.5">
-                  <Label>Tipo</Label>
-                  <Select
-                    value={formKind}
-                    onValueChange={(v) => setFormKind(v as FormKind)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="SURVEY">Questionario</SelectItem>
-                      <SelectItem value="REPORT">Segnalazione</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {formKind === "REPORT" && (
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Canale</Label>
-                    <Select
-                      value={formChannel}
-                      onValueChange={(v) => setFormChannel(v as FormChannel)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="PDR125">PdR 125</SelectItem>
-                        <SelectItem value="WHISTLEBLOWING">
-                          Whistleblowing
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+            </>
+          ) : (
+            <>
+              <SheetHeader>
+                <SheetTitle>Scegli un template</SheetTitle>
+                <SheetDescription>
+                  Seleziona un modello da cui partire.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="flex flex-col gap-3 p-6">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mr-auto"
+                  onClick={() => setSheetStep("choose")}
+                >
+                  &larr; Indietro
+                </Button>
+                {templatesLoading ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">
+                    Caricamento template...
+                  </p>
+                ) : templates.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">
+                    Nessun template disponibile.
+                  </p>
+                ) : (
+                  templates.map((tpl) => {
+                    const isImporting = importingTemplate === tpl.id;
+                    return (
+                      <button
+                        key={tpl.id}
+                        type="button"
+                        className="flex items-start gap-4 rounded-lg border p-4 text-left transition-colors hover:bg-muted/50 disabled:opacity-50"
+                        onClick={() => handleImportTemplate(tpl.id)}
+                        disabled={isImporting || importingTemplate !== null}
+                      >
+                        <FileText className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium">
+                            {tpl.catalogTitle.it ?? tpl.catalogTitle.en}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {tpl.catalogDescription.it ?? tpl.catalogDescription.en}
+                          </p>
+                          {tpl.channel && (
+                            <Badge variant="outline" className="mt-2">
+                              {CHANNEL_LABEL[tpl.channel as FormChannel] ?? tpl.channel}
+                            </Badge>
+                          )}
+                        </div>
+                        {isImporting && (
+                          <span className="text-xs text-muted-foreground">Importazione...</span>
+                        )}
+                      </button>
+                    );
+                  })
                 )}
               </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="survey-schema">Schema (JSON)</Label>
-                <textarea
-                  id="survey-schema"
-                  className="min-h-[200px] w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 font-mono text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
-                  value={formSchema}
-                  onChange={(e) => setFormSchema(e.target.value)}
-                  rows={10}
-                  spellCheck={false}
-                />
-              </div>
-
-              {formError && (
-                <p className="text-sm text-destructive" role="alert">
-                  {formError}
-                </p>
-              )}
-            </CardContent>
-            <CardFooter className="gap-2">
-              <Button type="submit" disabled={formSubmitting}>
-                {formSubmitting ? "Creazione..." : "Crea modulo"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowCreateForm(false)}
-              >
-                Annulla
-              </Button>
-            </CardFooter>
-          </form>
-        </Card>
-      )}
-
-      {/* ── Filter tabs ─────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2">
-        {(["ALL", "SURVEY", "REPORT"] as const).map((f) => (
-          <Button
-            key={f}
-            size="sm"
-            variant={filterKind === f ? "default" : "outline"}
-            onClick={() => setFilterKind(f)}
-          >
-            {f === "ALL" ? "Tutti" : f === "SURVEY" ? "Questionari" : "Segnalazioni"}
-          </Button>
-        ))}
-      </div>
-
-      {/* ── Survey list ─────────────────────────────────────────────── */}
-      {filteredSurveys.length === 0 && !showCreateForm ? (
-        <Card className="w-full text-center">
-          <CardHeader>
-            <CardTitle>Nessun modulo</CardTitle>
-            <CardDescription>
-              {filterKind === "ALL"
-                ? "Importa un template o crea un modulo da zero."
-                : "Nessun modulo per questo filtro."}
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredSurveys.map((survey) => {
-            const isActionLoading = actionLoading === survey.id;
-            return (
-              <Card key={survey.id} className="flex flex-col">
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="leading-snug">
-                      {survey.title}
-                    </CardTitle>
-                    {statusBadge(survey.status)}
-                  </div>
-                  {survey.description && (
-                    <CardDescription className="line-clamp-2">
-                      {survey.description}
-                    </CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-2 flex flex-wrap gap-1.5">
-                    {kindBadge(survey.kind)}
-                    {survey.channel && (
-                      <Badge variant="outline">
-                        {CHANNEL_LABEL[survey.channel]}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                    <span>v{survey.version}</span>
-                    <span>
-                      {survey.responseCount} rispost
-                      {survey.responseCount !== 1 ? "e" : "a"}
-                    </span>
-                    <span>{formatDate(survey.createdAt)}</span>
-                  </div>
-                </CardContent>
-                <CardFooter className="mt-auto gap-2 flex-wrap">
-                  {/* Activate / Deactivate toggle */}
-                  {(survey.status === "DRAFT" || survey.status === "CLOSED") && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleStatusChange(survey.id, "ACTIVE")}
-                      disabled={isActionLoading}
-                    >
-                      Attiva
-                    </Button>
-                  )}
-                  {survey.status === "ACTIVE" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleStatusChange(survey.id, "CLOSED")}
-                      disabled={isActionLoading}
-                    >
-                      Disattiva
-                    </Button>
-                  )}
-
-                  {/* Edit */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      router.push(
-                        `/rpg/surveys/edit?surveyId=${survey.id}`,
-                      )
-                    }
-                  >
-                    Modifica
-                  </Button>
-
-                  {/* Results */}
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() =>
-                      router.push(
-                        `/rpg/surveys/results?surveyId=${survey.id}`,
-                      )
-                    }
-                  >
-                    Risultati
-                  </Button>
-
-                  {/* Archive */}
-                  {survey.status !== "ARCHIVED" && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() =>
-                        handleStatusChange(survey.id, "ARCHIVED")
-                      }
-                      disabled={isActionLoading}
-                    >
-                      Archivia
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
-            );
-          })}
+      {/* Error banner */}
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/5 px-4 py-3">
+          <p className="text-sm text-destructive">{error}</p>
         </div>
       )}
-    </main>
+
+      {/* Filters toolbar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Input
+          placeholder="Cerca per titolo..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full sm:w-64"
+        />
+        <Select
+          value={statusFilter}
+          onValueChange={(v) => setStatusFilter(v as SurveyStatus | "ALL")}
+        >
+          <SelectTrigger className="w-full sm:w-44">
+            <SelectValue>
+              {statusFilter === "ALL" ? "Tutti gli stati" : STATUS_BADGE[statusFilter].label}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Tutti gli stati</SelectItem>
+            <SelectItem value="DRAFT">Bozza</SelectItem>
+            <SelectItem value="ACTIVE">Attivo</SelectItem>
+            <SelectItem value="CLOSED">Chiuso</SelectItem>
+            <SelectItem value="ARCHIVED">Archiviato</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={channelFilter}
+          onValueChange={(v) => setChannelFilter(v as FormChannel | "ALL")}
+        >
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue>
+              {channelFilter === "ALL" ? "Tutti i canali" : CHANNEL_LABEL[channelFilter]}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Tutti i canali</SelectItem>
+            <SelectItem value="PDR125">PdR 125</SelectItem>
+            <SelectItem value="WHISTLEBLOWING">Whistleblowing</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>
+                <button type="button" className="inline-flex items-center font-medium" onClick={() => handleSort("title")}>
+                  Titolo <SortIcon field="title" />
+                </button>
+              </TableHead>
+              <TableHead>
+                <button type="button" className="inline-flex items-center font-medium" onClick={() => handleSort("status")}>
+                  Stato <SortIcon field="status" />
+                </button>
+              </TableHead>
+              <TableHead>Canale</TableHead>
+              <TableHead className="text-center">Versione</TableHead>
+              <TableHead>
+                <button type="button" className="inline-flex items-center font-medium" onClick={() => handleSort("responseCount")}>
+                  Risposte <SortIcon field="responseCount" />
+                </button>
+              </TableHead>
+              <TableHead>
+                <button type="button" className="inline-flex items-center font-medium" onClick={() => handleSort("createdAt")}>
+                  Data <SortIcon field="createdAt" />
+                </button>
+              </TableHead>
+              <TableHead className="text-right">Azioni</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginated.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                  {surveys.length === 0
+                    ? "Nessun modulo. Crea il primo con il bottone \"Nuovo modulo\"."
+                    : "Nessun risultato per i filtri selezionati."}
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginated.map((survey) => (
+                <TableRow key={survey.id} className="group">
+                  <TableCell className="font-medium">{survey.title}</TableCell>
+                  <TableCell>{statusBadge(survey.status)}</TableCell>
+                  <TableCell>{channelBadge(survey.channel)}</TableCell>
+                  <TableCell className="text-center">v{survey.version}</TableCell>
+                  <TableCell>{survey.responseCount}</TableCell>
+                  <TableCell>{formatDate(survey.createdAt)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      {survey.status === "ACTIVE" && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          onClick={() => handleCopyFormLink(survey.id)}
+                          title="Copia link form"
+                        >
+                          {copiedId === survey.id ? (
+                            <Check className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <Link className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        onClick={() => router.push(`/rpg/surveys/edit?surveyId=${survey.id}`)}
+                        title="Modifica"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(survey)}
+                        disabled={deleting === survey.id}
+                        title="Elimina"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm">
+          <p className="text-muted-foreground">
+            Pagina {safePage} di {totalPages} &middot; {filtered.length} risultati
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={safePage <= 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+            >
+              Precedente
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={safePage >= totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+            >
+              Successiva
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

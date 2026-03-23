@@ -48,11 +48,13 @@ describe("POST /api/v1/organizations", () => {
     orgId = res.body.id;
   });
 
-  it("rejects unauthenticated request", async () => {
+  it("allows unauthenticated org creation (public onboarding)", async () => {
     const res = await request(app)
       .post("/api/v1/organizations")
       .send({ name: "Fail Corp" });
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(201);
+    // Cleanup
+    await prisma.organization.delete({ where: { id: res.body.id } }).catch(() => {});
   });
 });
 

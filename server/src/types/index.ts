@@ -44,8 +44,13 @@ export enum WbCategory {
 
 export interface JwtPayload {
   userId: string;
+  orgId: string | null;
+  role: "super_admin" | "admin" | "rpg" | "odv" | "technical";
+}
+
+export interface AnonJwtPayload {
   orgId: string;
-  role: "rpg" | "odv" | "admin";
+  type: "anonymous";
 }
 
 declare global {

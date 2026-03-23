@@ -6,6 +6,9 @@ import type { CreateOrganizationInput, UpdateKeysInput } from "../types/schemas"
 
 const BUILTIN_ROLES = [
   { name: "Responsabile Parità", slug: "responsabile", dataLevel: 0, isBuiltin: true, description: "Accesso completo ai dati identificativi e ai fatti. Gestisce team e sondaggi." },
+  { name: "Investigatori Designati", slug: "investigatori", dataLevel: 1, isBuiltin: true, description: "Accesso ai fatti completi e persone coinvolte. Nessun dato di contatto." },
+  { name: "Comitato Guida", slug: "comitato-guida", dataLevel: 2, isBuiltin: true, description: "Fatti anonimizzati: descrizione, date, luoghi. Nessuna identità o contatto." },
+  { name: "Management / Auditor", slug: "management", dataLevel: 4, isBuiltin: true, description: "Solo dati statistici aggregati: categorie, luoghi, presenza testimoni." },
 ];
 
 export async function create(input: CreateOrganizationInput) {

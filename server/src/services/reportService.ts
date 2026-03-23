@@ -1,6 +1,7 @@
 import { prisma } from "../utils/prisma";
 import { AppError } from "../middleware/errorHandler";
-import type { CreateReportMetadataInput, EnrichReportMetadataInput, UpdateReportStatusInput } from "../types/schemas";
+import { appendAuditLog } from "./auditService";
+import type { CreateReportMetadataInput, EnrichReportMetadataInput, UpdateReportStatusInput, ListReportMetadataQuery } from "../types/schemas";
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   RECEIVED: ["ACKNOWLEDGED"],
@@ -13,7 +14,8 @@ export async function createMetadata(input: CreateReportMetadataInput) {
   const org = await prisma.organization.findUnique({ where: { id: input.orgId } });
   if (!org) throw new AppError(404, "Organization not found");
 
-  const receivedAt = input.receivedAt ? new Date(input.receivedAt) : new Date();
+  // receivedAt is always server-generated — never trust client input
+  const receivedAt = new Date();
   const isWb = input.channel === "WHISTLEBLOWING";
 
   const ackDays = isWb ? org.wbSlaAckDays : org.pdrSlaAckDays;
@@ -22,7 +24,7 @@ export async function createMetadata(input: CreateReportMetadataInput) {
   const slaAckDeadline = new Date(receivedAt.getTime() + ackDays * 24 * 60 * 60 * 1000);
   const slaResponseDeadline = new Date(receivedAt.getTime() + responseDays * 24 * 60 * 60 * 1000);
 
-  return prisma.reportMetadata.create({
+  const report = await prisma.reportMetadata.create({
     data: {
       orgId: input.orgId,
       channel: input.channel,
@@ -31,6 +33,14 @@ export async function createMetadata(input: CreateReportMetadataInput) {
       slaResponseDeadline,
     },
   });
+
+  await appendAuditLog("ReportMetadata", report.id, "CREATE", {
+    orgId: input.orgId,
+    channel: input.channel,
+    receivedAt: receivedAt.toISOString(),
+  });
+
+  return report;
 }
 
 export async function enrichMetadata(id: string, input: EnrichReportMetadataInput) {
@@ -42,6 +52,7 @@ export async function enrichMetadata(id: string, input: EnrichReportMetadataInpu
   if (input.category !== undefined) updates.category = input.category;
   if (input.identityRevealed !== undefined) updates.identityRevealed = input.identityRevealed;
   if (input.hasAttachments !== undefined) updates.hasAttachments = input.hasAttachments;
+  if (input.correctiveAction !== undefined) updates.correctiveAction = input.correctiveAction;
 
   if (input.status !== undefined) {
     const allowed = VALID_TRANSITIONS[report.status];
@@ -66,26 +77,82 @@ export async function enrichMetadata(id: string, input: EnrichReportMetadataInpu
     throw new AppError(400, "No valid fields to update");
   }
 
-  return prisma.reportMetadata.update({
+  const updated = await prisma.reportMetadata.update({
     where: { id },
     data: updates,
   });
+
+  const action = updates.status ? "STATUS_CHANGE" : "ENRICH";
+  const auditData: Record<string, unknown> = {
+    timestamp: new Date().toISOString(),
+    ...updates,
+  };
+  if (updates.status) {
+    auditData.from = report.status;
+    auditData.to = updates.status;
+  }
+  await appendAuditLog("ReportMetadata", id, action, auditData);
+
+  return updated;
 }
 
-export async function listMetadata(orgId: string, channel?: string) {
-  return prisma.reportMetadata.findMany({
-    where: {
-      orgId,
-      ...(channel && { channel: channel as "PDR125" | "WHISTLEBLOWING" }),
-    },
-    orderBy: { receivedAt: "desc" },
-  });
+export async function listMetadata(query: ListReportMetadataQuery) {
+  const page = query.page ?? 1;
+  const limit = query.limit ?? 20;
+  const skip = (page - 1) * limit;
+
+  const where: Record<string, unknown> = { orgId: query.org_id };
+  if (query.channel) where.channel = query.channel;
+  if (query.status) where.status = query.status;
+  if (query.category) where.category = query.category;
+  if (query.date_from || query.date_to) {
+    where.receivedAt = {
+      ...(query.date_from && { gte: new Date(query.date_from) }),
+      ...(query.date_to && { lte: new Date(query.date_to) }),
+    };
+  }
+
+  const orderBy = { [query.sort_by ?? "receivedAt"]: query.sort_dir ?? "desc" };
+
+  const [items, total] = await Promise.all([
+    prisma.reportMetadata.findMany({ where, orderBy, skip, take: limit }),
+    prisma.reportMetadata.count({ where }),
+  ]);
+
+  return { items, total, page, limit };
 }
 
 export async function getById(id: string) {
   const report = await prisma.reportMetadata.findUnique({ where: { id } });
   if (!report) throw new AppError(404, "Report not found");
-  return report;
+
+  const now = new Date();
+
+  let slaAckDaysRemaining: number | null = null;
+  let slaAckOverdue = false;
+  if (report.slaAckDeadline) {
+    slaAckDaysRemaining = Math.ceil((report.slaAckDeadline.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+    slaAckOverdue = report.status === "RECEIVED" && now > report.slaAckDeadline;
+  }
+
+  let slaResponseDaysRemaining: number | null = null;
+  let slaResponseOverdue = false;
+  if (report.slaResponseDeadline) {
+    slaResponseDaysRemaining = Math.ceil((report.slaResponseDeadline.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+    slaResponseOverdue = !["RECEIVED", "CLOSED_FOUNDED", "CLOSED_UNFOUNDED", "CLOSED_BAD_FAITH"].includes(report.status)
+      && now > report.slaResponseDeadline;
+  }
+
+  const validNextStatuses = VALID_TRANSITIONS[report.status] ?? [];
+
+  return {
+    ...report,
+    slaAckDaysRemaining,
+    slaAckOverdue,
+    slaResponseDaysRemaining,
+    slaResponseOverdue,
+    validNextStatuses,
+  };
 }
 
 export async function updateStatus(id: string, input: UpdateReportStatusInput) {
@@ -110,10 +177,19 @@ export async function updateStatus(id: string, input: UpdateReportStatusInput) {
     updates.closedAt = now;
   }
 
-  return prisma.reportMetadata.update({
+  const updated = await prisma.reportMetadata.update({
     where: { id },
     data: updates,
   });
+
+  await appendAuditLog("ReportMetadata", id, "STATUS_CHANGE", {
+    from: report.status,
+    to: input.status,
+    timestamp: now.toISOString(),
+    ...updates,
+  });
+
+  return updated;
 }
 
 export async function getSlaStatus(orgId: string) {

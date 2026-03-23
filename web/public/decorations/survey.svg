@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" fill="none">
+  <!-- Background shape -->
+  <circle cx="200" cy="300" r="180" fill="#E3F2FD" opacity="0.5"/>
+  <!-- Clipboard -->
+  <rect x="130" y="120" width="160" height="220" rx="12" fill="#fff" stroke="#1976D2" stroke-width="3"/>
+  <rect x="175" y="108" width="70" height="24" rx="12" fill="#1976D2"/>
+  <!-- Checkboxes -->
+  <rect x="155" y="170" width="18" height="18" rx="3" fill="#1976D2"/>
+  <path d="M159 179l4 4 8-8" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="183" y="173" width="80" height="10" rx="5" fill="#BBDEFB"/>
+  <rect x="155" y="205" width="18" height="18" rx="3" fill="#1976D2"/>
+  <path d="M159 214l4 4 8-8" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="183" y="208" width="65" height="10" rx="5" fill="#BBDEFB"/>
+  <rect x="155" y="240" width="18" height="18" rx="3" stroke="#BDBDBD" stroke-width="2" fill="none"/>
+  <rect x="183" y="243" width="90" height="10" rx="5" fill="#E0E0E0"/>
+  <rect x="155" y="275" width="18" height="18" rx="3" stroke="#BDBDBD" stroke-width="2" fill="none"/>
+  <rect x="183" y="278" width="55" height="10" rx="5" fill="#E0E0E0"/>
+  <!-- Person -->
+  <circle cx="210" cy="420" r="30" fill="#FFC107"/>
+  <ellipse cx="210" cy="500" rx="45" ry="50" fill="#1976D2"/>
+  <!-- Pencil -->
+  <g transform="translate(280,180) rotate(30)">
+    <rect x="0" y="0" width="12" height="80" rx="2" fill="#FF9800"/>
+    <polygon points="0,80 12,80 6,95" fill="#FFE082"/>
+    <rect x="0" y="0" width="12" height="10" rx="2" fill="#F57C00"/>
+  </g>
+</svg>

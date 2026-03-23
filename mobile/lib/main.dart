@@ -18,7 +18,7 @@ class ThemisApp extends StatelessWidget {
       title: 'Themis',
       theme: appTheme,
       routerConfig: router,
-      locale: const Locale('it'),
+      // Use device locale — Flutter falls back to first supportedLocale
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [
         AppLocalizations.delegate,

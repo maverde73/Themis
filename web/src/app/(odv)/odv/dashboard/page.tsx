@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { Shield } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,14 +12,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { PageHeader } from "@/components/page-header";
+import { DataTable, type DataTableColumn } from "@/components/data-table";
+import { EmptyState } from "@/components/empty-state";
+import { SkeletonPage } from "@/components/skeleton-page";
 import { getReports, type ReportMetadata } from "@/lib/api";
 import { getStoredUser, isAuthenticated } from "@/lib/auth";
 
@@ -77,6 +74,48 @@ function formatDate(iso: string): string {
   });
 }
 
+// ── Column definitions ──────────────────────────────────────────────────
+
+const columns: DataTableColumn<ReportMetadata>[] = [
+  {
+    key: "id",
+    header: "ID",
+    className: "w-32",
+    render: (row) => (
+      <span className="font-mono text-xs">{truncateId(row.id)}</span>
+    ),
+  },
+  {
+    key: "status",
+    header: "Status",
+    render: (row) => statusBadge(row.status),
+  },
+  {
+    key: "receivedAt",
+    header: "Received",
+    sortable: true,
+    render: (row) => (
+      <span className="text-sm">{formatDate(row.receivedAt)}</span>
+    ),
+  },
+  {
+    key: "slaAck",
+    header: "SLA Ack",
+    render: (row) => {
+      const sla = slaStatus(row.slaAckDeadline ?? null);
+      return <Badge variant={sla.variant}>{sla.label}</Badge>;
+    },
+  },
+  {
+    key: "slaResponse",
+    header: "SLA Response",
+    render: (row) => {
+      const sla = slaStatus(row.slaResponseDeadline ?? null);
+      return <Badge variant={sla.variant}>{sla.label}</Badge>;
+    },
+  },
+];
+
 // ── Page component ─────────────────────────────────────────────────────
 
 export default function OdvDashboardPage() {
@@ -92,7 +131,7 @@ export default function OdvDashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getReports(user.orgId, "WHISTLEBLOWING");
+      const data = await getReports(user.orgId!, "WHISTLEBLOWING");
       setReports(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch reports");
@@ -110,54 +149,44 @@ export default function OdvDashboardPage() {
   }, [router, fetchReports]);
 
   if (loading) {
-    return (
-      <main className="flex flex-1 items-center justify-center p-6">
-        <p className="text-muted-foreground">Loading reports...</p>
-      </main>
-    );
+    return <SkeletonPage />;
   }
 
   if (error) {
     return (
-      <main className="flex flex-1 items-center justify-center p-6">
+      <div className="flex flex-1 items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Error</CardTitle>
             <CardDescription>{error}</CardDescription>
           </CardHeader>
         </Card>
-      </main>
+      </div>
     );
   }
 
   if (reports.length === 0) {
     return (
-      <main className="flex flex-1 items-center justify-center p-6">
-        <Card className="w-full max-w-md text-center">
-          <CardHeader>
-            <CardTitle>No reports yet</CardTitle>
-            <CardDescription>
-              Whistleblowing reports will appear here when received.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </main>
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title="OdV Dashboard — Whistleblowing"
+          subtitle="0 reports — metadata only | SLA: 7 days acknowledgement, 90 days response (D.Lgs. 24/2023)"
+        />
+        <EmptyState
+          icon={<Shield className="h-6 w-6" />}
+          title="No reports yet"
+          description="Whistleblowing reports will appear here when received."
+        />
+      </div>
     );
   }
 
   return (
-    <main className="flex flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">
-            OdV Dashboard — Whistleblowing
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {reports.length} report{reports.length !== 1 ? "s" : ""} — metadata only |{" "}
-            SLA: 7 days acknowledgement, 90 days response (D.Lgs. 24/2023)
-          </p>
-        </div>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="OdV Dashboard — Whistleblowing"
+        subtitle={`${reports.length} report${reports.length !== 1 ? "s" : ""} — metadata only | SLA: 7 days acknowledgement, 90 days response (D.Lgs. 24/2023)`}
+      />
 
       {/* Manager App required for content */}
       <Card className="border-dashed bg-muted/30">
@@ -171,43 +200,14 @@ export default function OdvDashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Metadata-only table */}
+      {/* Reports table */}
       <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-32">ID</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Received</TableHead>
-              <TableHead>SLA Ack</TableHead>
-              <TableHead>SLA Response</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {reports.map((report) => {
-              const ackSla = slaStatus(report.slaAckDeadline ?? null);
-              const respSla = slaStatus(report.slaResponseDeadline ?? null);
-              return (
-                <TableRow key={report.id}>
-                  <TableCell className="font-mono text-xs">
-                    {truncateId(report.id)}
-                  </TableCell>
-                  <TableCell>{statusBadge(report.status)}</TableCell>
-                  <TableCell className="text-sm">
-                    {formatDate(report.receivedAt)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={ackSla.variant}>{ackSla.label}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={respSla.variant}>{respSla.label}</Badge>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+        <DataTable
+          columns={columns}
+          data={reports}
+          keyExtractor={(r) => r.id}
+        />
       </div>
-    </main>
+    </div>
   );
 }

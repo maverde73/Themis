@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" fill="none">
+  <circle cx="200" cy="300" r="180" fill="#E8F5E9" opacity="0.5"/>
+  <!-- Person 1 -->
+  <circle cx="130" cy="260" r="28" fill="#4CAF50"/>
+  <ellipse cx="130" cy="340" rx="38" ry="42" fill="#388E3C"/>
+  <!-- Person 2 (center, taller) -->
+  <circle cx="210" cy="240" r="32" fill="#2196F3"/>
+  <ellipse cx="210" cy="330" rx="42" ry="48" fill="#1565C0"/>
+  <!-- Person 3 -->
+  <circle cx="285" cy="260" r="28" fill="#FF9800"/>
+  <ellipse cx="285" cy="340" rx="38" ry="42" fill="#F57C00"/>
+  <!-- Connecting arcs -->
+  <path d="M155 310 Q180 280 195 310" stroke="#81C784" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M230 310 Q255 280 270 310" stroke="#FFB74D" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- Star -->
+  <polygon points="210,140 218,165 245,165 224,180 231,205 210,190 189,205 196,180 175,165 202,165" fill="#FFC107"/>
+  <!-- Base line -->
+  <rect x="80" y="400" width="240" height="6" rx="3" fill="#C8E6C9"/>
+</svg>

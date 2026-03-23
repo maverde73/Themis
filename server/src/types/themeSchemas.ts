@@ -51,6 +51,7 @@ export const DEFAULT_THEME_CONFIG = {
     inputFocus: "#1976d2",
     selectionHighlight: "rgba(25,118,210,0.08)",
     required: "#d32f2f",
+    surveyBackground: "#ffffff",
   },
   typography: {
     fontFamily: "Inter, -apple-system, sans-serif",
@@ -90,11 +91,20 @@ export const DEFAULT_THEME_CONFIG = {
   },
   card: {
     backgroundColor: "#ffffff",
+    backgroundOpacity: 1,
     borderColor: "#e0e0e0",
     borderWidth: "1px",
     borderRadius: "12px",
     shadow: "0 2px 8px rgba(0,0,0,0.08)",
     padding: "32px",
+  },
+  decoration: {
+    type: "none" as const,
+    builtinId: null as string | null,
+    url: null as string | null,
+    position: "right" as const,
+    opacity: 1,
+    size: "medium" as const,
   },
 };
 
@@ -118,6 +128,7 @@ const themeColorsSchema = z.object({
   inputFocus:         cssColorSchema.default(d.colors.inputFocus),
   selectionHighlight: cssColorSchema.default(d.colors.selectionHighlight),
   required:           cssColorSchema.default(d.colors.required),
+  surveyBackground:   cssBackgroundSchema.default(d.colors.surveyBackground),
 });
 
 const themeTypographySchema = z.object({
@@ -160,12 +171,22 @@ const themeButtonsSchema = z.object({
 });
 
 const themeCardSchema = z.object({
-  backgroundColor: cssBackgroundSchema.default(d.card.backgroundColor),
+  backgroundColor:  cssBackgroundSchema.default(d.card.backgroundColor),
+  backgroundOpacity: z.number().min(0).max(1).default(1),
   borderColor:     cssColorSchema.default(d.card.borderColor),
   borderWidth:     cssSizeSchema.default(d.card.borderWidth),
   borderRadius:    cssSizeSchema.default(d.card.borderRadius),
   shadow:          z.string().default(d.card.shadow),
   padding:         cssSizeSchema.default(d.card.padding),
+});
+
+const themeDecorationSchema = z.object({
+  type:      z.enum(["none", "builtin", "url"]).default("none"),
+  builtinId: z.string().nullable().default(null),
+  url:       z.string().url().nullable().default(null),
+  position:  z.enum(["right", "left", "background"]).default("right"),
+  opacity:   z.number().min(0).max(1).default(1),
+  size:      z.enum(["small", "medium", "large"]).default("medium"),
 });
 
 // ── Main config schema ──────────────────────────────────────────────
@@ -176,6 +197,7 @@ export const themeConfigSchema = z.object({
   spacing:    themeSpacingSchema.default(d.spacing),
   buttons:    themeButtonsSchema.default(d.buttons),
   card:       themeCardSchema.default(d.card),
+  decoration: themeDecorationSchema.default(d.decoration),
 });
 
 // ── CRUD schemas ────────────────────────────────────────────────────
@@ -200,7 +222,7 @@ export const updateThemeSchema = z.object({
 }).refine((obj) => Object.keys(obj).length > 0, "At least one field required");
 
 export const patchThemeSectionSchema = z.object({
-  section: z.enum(["colors", "typography", "spacing", "buttons", "card"]),
+  section: z.enum(["colors", "typography", "spacing", "buttons", "card", "decoration"]),
   data: z.record(z.string(), z.unknown()),
 });
 

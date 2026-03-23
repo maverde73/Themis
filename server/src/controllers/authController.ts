@@ -18,3 +18,12 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     next(err);
   }
 }
+
+export async function anonymousToken(req: Request, res: Response, next: NextFunction) {
+  try {
+    const token = await authService.generateAnonymousToken(req.body);
+    res.json({ token });
+  } catch (err) {
+    next(err);
+  }
+}

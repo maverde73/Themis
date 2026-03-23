@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" fill="none">
+  <circle cx="200" cy="300" r="180" fill="#E8EAF6" opacity="0.5"/>
+  <!-- Shield -->
+  <path d="M200,130 L280,170 L280,280 C280,350 240,400 200,420 C160,400 120,350 120,280 L120,170 Z" fill="#3F51B5" opacity="0.9"/>
+  <path d="M200,150 L265,185 L265,275 C265,335 232,378 200,395 C168,378 135,335 135,275 L135,185 Z" fill="#5C6BC0"/>
+  <!-- Checkmark on shield -->
+  <path d="M170,270 L192,295 L235,240" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Lock -->
+  <rect x="170" y="440" width="60" height="50" rx="8" fill="#3F51B5"/>
+  <path d="M180,440 L180,420 C180,400 220,400 220,420 L220,440" stroke="#3F51B5" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <circle cx="200" cy="462" r="8" fill="#C5CAE9"/>
+  <rect x="197" y="462" width="6" height="14" rx="3" fill="#C5CAE9"/>
+  <!-- Decorative dots -->
+  <circle cx="100" cy="200" r="6" fill="#9FA8DA" opacity="0.6"/>
+  <circle cx="310" cy="350" r="8" fill="#9FA8DA" opacity="0.6"/>
+  <circle cx="90" cy="380" r="5" fill="#9FA8DA" opacity="0.4"/>
+  <circle cx="320" cy="220" r="4" fill="#9FA8DA" opacity="0.5"/>
+</svg>

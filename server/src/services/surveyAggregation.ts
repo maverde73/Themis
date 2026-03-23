@@ -1,17 +1,46 @@
 import { prisma } from "../utils/prisma";
 import { AppError } from "../middleware/errorHandler";
+
 import type { SurveySchemaDefinition, SurveyQuestion } from "../types/surveySchemas";
+
+interface OptionMeta {
+  value: string;
+  label: string | Record<string, string>;
+}
 
 interface AggregatedQuestion {
   questionId: string;
   type: string;
-  label: string;
+  label: string | Record<string, string>;
   responseCount: number;
   data: unknown;
+  options?: OptionMeta[];
 }
 
-function aggregateChoice(answers: unknown[]): Record<string, number> {
+/** Extracts plain string values from i18n options (backwards compat). */
+function resolveOptionValues(
+  options?: (string | { value: string; label: unknown })[]
+): string[] | undefined {
+  if (!options) return undefined;
+  return options.map((o) => (typeof o === "string" ? o : o.value));
+}
+
+/** Builds option metadata with localized labels for the frontend. */
+function resolveOptionMeta(
+  options?: (string | { value: string; label: unknown })[]
+): OptionMeta[] | undefined {
+  if (!options || options.length === 0) return undefined;
+  return options.map((o) => {
+    if (typeof o === "string") return { value: o, label: o };
+    return { value: o.value, label: o.label as string | Record<string, string> };
+  });
+}
+
+function aggregateChoice(answers: unknown[], allOptions?: string[]): Record<string, number> {
   const counts: Record<string, number> = {};
+  if (allOptions) {
+    for (const opt of allOptions) counts[opt] = 0;
+  }
   for (const a of answers) {
     if (typeof a === "string") {
       counts[a] = (counts[a] || 0) + 1;
@@ -20,8 +49,11 @@ function aggregateChoice(answers: unknown[]): Record<string, number> {
   return counts;
 }
 
-function aggregateMultiChoice(answers: unknown[]): Record<string, number> {
+function aggregateMultiChoice(answers: unknown[], allOptions?: string[]): Record<string, number> {
   const counts: Record<string, number> = {};
+  if (allOptions) {
+    for (const opt of allOptions) counts[opt] = 0;
+  }
   for (const a of answers) {
     if (Array.isArray(a)) {
       for (const item of a) {
@@ -135,15 +167,15 @@ function aggregateText(answers: unknown[]): { count: number } {
 function aggregateQuestion(question: SurveyQuestion, answers: unknown[]): unknown {
   switch (question.type) {
     case "choice":
-      return aggregateChoice(answers);
+      return aggregateChoice(answers, resolveOptionValues(question.options));
     case "multi_choice":
-      return aggregateMultiChoice(answers);
+      return aggregateMultiChoice(answers, resolveOptionValues(question.options));
     case "rating":
       return aggregateRating(answers);
     case "nps":
       return aggregateNps(answers);
     case "likert":
-      return aggregateLikert(answers, question.statements);
+      return aggregateLikert(answers, resolveOptionValues(question.statements));
     case "ranking":
       return aggregateRanking(answers);
     case "date":
@@ -180,22 +212,40 @@ export async function getAggregatedResults(surveyId: string) {
     }
   }
 
-  // Skip private questions — their answers are never on the server
+  // Skip non-public questions — their answers are never on the server
+  // accessLevel === 5 is public; private === true (legacy) means accessLevel 0
   const results: AggregatedQuestion[] = schema.questions
-    .filter((q) => !q.private && q.type !== "section")
-    .map((q) => ({
-      questionId: q.id,
-      type: q.type,
-      label: q.label,
-      responseCount: answersByQuestion[q.id]?.length ?? 0,
-      data: aggregateQuestion(q, answersByQuestion[q.id] ?? []),
-    }));
+    .filter((q) => {
+      const level = q.accessLevel ?? (q.private ? 0 : 5);
+      return level === 5 && q.type !== "section";
+    })
+    .map((q) => {
+      const hasOptions = q.type === "choice" || q.type === "multi_choice" || q.type === "ranking";
+      return {
+        questionId: q.id,
+        type: q.type,
+        label: q.label,
+        responseCount: answersByQuestion[q.id]?.length ?? 0,
+        data: aggregateQuestion(q, answersByQuestion[q.id] ?? []),
+        ...(hasOptions && q.options ? { options: resolveOptionMeta(q.options) } : {}),
+      };
+    });
+
+  // Build monthly response counts for trend chart
+  const responseDates: Record<string, number> = {};
+  for (const r of responses) {
+    const d = new Date(r.submittedAt);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    responseDates[key] = (responseDates[key] || 0) + 1;
+  }
 
   return {
     surveyId,
     title: survey.title,
     version: survey.version,
     totalResponses: responses.length,
+    createdAt: survey.createdAt.toISOString(),
+    responsesByMonth: responseDates,
     questions: results,
   };
 }

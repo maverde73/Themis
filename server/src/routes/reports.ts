@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as reportController from "../controllers/reportController";
-import { authenticate } from "../middleware/auth";
+import { authenticate, authenticateAnonymous } from "../middleware/auth";
 import { noIpLogging } from "../middleware/noIpLogging";
 import { anonymousLimiter } from "../middleware/rateLimiter";
 import { validate } from "../middleware/validate";
@@ -8,8 +8,8 @@ import { createReportMetadataSchema, enrichReportMetadataSchema, updateReportSta
 
 const router = Router();
 
-// Anonymous endpoint — no auth, no IP logging, rate limited
-router.post("/reports/metadata", anonymousLimiter, noIpLogging, validate(createReportMetadataSchema), reportController.createMetadata);
+// Mobile endpoint — anonymous token + no IP logging + rate limited
+router.post("/reports/metadata", authenticateAnonymous, anonymousLimiter, noIpLogging, validate(createReportMetadataSchema), reportController.createMetadata);
 
 // Dashboard endpoints require auth
 router.get("/reports/metadata", authenticate, reportController.listMetadata);
@@ -17,5 +17,9 @@ router.get("/reports/metadata/:id", authenticate, reportController.getById);
 router.put("/reports/metadata/:id", authenticate, validate(enrichReportMetadataSchema), reportController.enrichMetadata);
 router.put("/reports/metadata/:id/status", authenticate, validate(updateReportStatusSchema), reportController.updateStatus);
 router.get("/reports/sla-status", authenticate, reportController.getSlaStatus);
+
+// Export endpoints — PDF / JSON
+router.get("/reports/export/registro", authenticate, reportController.exportRegistro);
+router.get("/reports/export/scheda-dati", authenticate, reportController.exportSchedaDati);
 
 export default router;

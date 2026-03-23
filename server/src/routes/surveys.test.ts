@@ -1,9 +1,12 @@
+import crypto from "crypto";
 import request from "supertest";
 import app from "../app";
 import { prisma } from "../utils/prisma";
 
 const TEST_ORG_ID = "00000000-0000-0000-0000-000000000096";
+const PAIRING_SECRET = crypto.randomBytes(32).toString("hex");
 let token: string;
+let anonToken: string;
 let surveyId: string;
 
 const SURVEY_SCHEMA = {
@@ -57,15 +60,21 @@ const SURVEY_SCHEMA = {
   ],
 };
 
+function generateAnonProof(orgId: string, secret: string, timestamp: number, nonce: string): string {
+  const message = `${orgId}|${timestamp}|${nonce}`;
+  return crypto.createHmac("sha256", secret).update(message).digest("hex");
+}
+
 beforeAll(async () => {
   await prisma.organization.upsert({
     where: { id: TEST_ORG_ID },
-    update: {},
+    update: { pairingSecret: PAIRING_SECRET },
     create: {
       id: TEST_ORG_ID,
       name: "Survey Test Org",
       plan: "STARTER",
       relayUrls: ["ws://localhost:7777"],
+      pairingSecret: PAIRING_SECRET,
     },
   });
 
@@ -76,6 +85,18 @@ beforeAll(async () => {
     orgId: TEST_ORG_ID,
   });
   token = res.body.token;
+
+  // Get anonymous token
+  const timestamp = Math.floor(Date.now() / 1000);
+  const nonce = crypto.randomUUID();
+  const proof = generateAnonProof(TEST_ORG_ID, PAIRING_SECRET, timestamp, nonce);
+  const anonRes = await request(app).post("/api/v1/auth/anonymous").send({
+    orgId: TEST_ORG_ID,
+    timestamp,
+    nonce,
+    proof,
+  });
+  anonToken = anonRes.body.token;
 });
 
 afterAll(async () => {
@@ -134,10 +155,17 @@ describe("GET /api/v1/surveys", () => {
 });
 
 describe("GET /api/v1/surveys/:id", () => {
-  it("returns survey without auth (for mobile app)", async () => {
-    const res = await request(app).get(`/api/v1/surveys/${surveyId}`);
+  it("returns survey with anonymous token", async () => {
+    const res = await request(app)
+      .get(`/api/v1/surveys/${surveyId}`)
+      .set("Authorization", `Bearer ${anonToken}`);
     expect(res.status).toBe(200);
     expect(res.body.title).toBe(SURVEY_SCHEMA.title);
+  });
+
+  it("rejects unauthenticated request", async () => {
+    const res = await request(app).get(`/api/v1/surveys/${surveyId}`);
+    expect(res.status).toBe(401);
   });
 });
 
@@ -177,6 +205,7 @@ describe("POST /api/v1/surveys/:id/responses", () => {
   it("submits a valid response (public fields only)", async () => {
     const res = await request(app)
       .post(`/api/v1/surveys/${surveyId}/responses`)
+      .set("Authorization", `Bearer ${anonToken}`)
       .send({
         answers: {
           q1: "Good",
@@ -191,9 +220,17 @@ describe("POST /api/v1/surveys/:id/responses", () => {
     expect(res.body.surveyId).toBe(surveyId);
   });
 
+  it("rejects unauthenticated submission", async () => {
+    const res = await request(app)
+      .post(`/api/v1/surveys/${surveyId}/responses`)
+      .send({ answers: { q1: "Good" } });
+    expect(res.status).toBe(401);
+  });
+
   it("rejects private field keys with 400", async () => {
     const res = await request(app)
       .post(`/api/v1/surveys/${surveyId}/responses`)
+      .set("Authorization", `Bearer ${anonToken}`)
       .send({
         answers: {
           q1: "Good",
@@ -201,7 +238,7 @@ describe("POST /api/v1/surveys/:id/responses", () => {
         },
       });
     expect(res.status).toBe(400);
-    expect(res.body.error).toContain("Private fields");
+    expect(res.body.error).toContain("Non-public fields");
     expect(res.body.error).toContain("q4");
   });
 
@@ -215,6 +252,7 @@ describe("POST /api/v1/surveys/:id/responses", () => {
     for (const answers of responses) {
       const res = await request(app)
         .post(`/api/v1/surveys/${surveyId}/responses`)
+        .set("Authorization", `Bearer ${anonToken}`)
         .send({ answers });
       expect(res.status).toBe(201);
     }
@@ -229,6 +267,7 @@ describe("POST /api/v1/surveys/:id/responses", () => {
 
     const res = await request(app)
       .post(`/api/v1/surveys/${surveyId}/responses`)
+      .set("Authorization", `Bearer ${anonToken}`)
       .send({ answers: { q1: "Good" } });
     expect(res.status).toBe(400);
     expect(res.body.error).toContain("not accepting responses");

@@ -39,7 +39,7 @@ export async function getThemeById(req: Request, res: Response, next: NextFuncti
 
 export async function createTheme(req: Request, res: Response, next: NextFunction) {
   try {
-    const theme = await themeService.createTheme(req.body, req.user!.userId, req.user!.orgId);
+    const theme = await themeService.createTheme(req.body, req.user!.userId, req.user!.orgId!);
     res.status(201).json(theme);
   } catch (err) {
     next(err);
@@ -74,7 +74,7 @@ export async function cloneTheme(req: Request, res: Response, next: NextFunction
     const theme = await themeService.cloneTheme(
       req.params.id as string,
       req.user!.userId,
-      req.user!.orgId,
+      req.user!.orgId!,
       req.body.name,
     );
     res.status(201).json(theme);

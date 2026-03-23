@@ -122,29 +122,11 @@ abstract class AppLocalizations {
   /// **'Scegli il tipo di segnalazione'**
   String get chooseReportType;
 
-  /// No description provided for @reportHarassment.
+  /// No description provided for @noActiveForms.
   ///
   /// In it, this message translates to:
-  /// **'Segnala molestia'**
-  String get reportHarassment;
-
-  /// No description provided for @reportHarassmentSubtitle.
-  ///
-  /// In it, this message translates to:
-  /// **'PdR 125 — Parità di genere'**
-  String get reportHarassmentSubtitle;
-
-  /// No description provided for @reportMisconduct.
-  ///
-  /// In it, this message translates to:
-  /// **'Segnala illecito'**
-  String get reportMisconduct;
-
-  /// No description provided for @reportMisconductSubtitle.
-  ///
-  /// In it, this message translates to:
-  /// **'Whistleblowing — D.Lgs. 24/2023'**
-  String get reportMisconductSubtitle;
+  /// **'Nessun modulo disponibile. Contatta la tua organizzazione.'**
+  String get noActiveForms;
 
   /// No description provided for @fillSurvey.
   ///
@@ -227,7 +209,7 @@ abstract class AppLocalizations {
   /// No description provided for @surveySubmitted.
   ///
   /// In it, this message translates to:
-  /// **'Questionario inviato con successo'**
+  /// **'Inviato con successo'**
   String get surveySubmitted;
 
   /// No description provided for @alreadySubmitted.

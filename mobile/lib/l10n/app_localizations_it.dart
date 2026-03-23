@@ -22,16 +22,8 @@ class AppLocalizationsIt extends AppLocalizations {
   String get chooseReportType => 'Scegli il tipo di segnalazione';
 
   @override
-  String get reportHarassment => 'Segnala molestia';
-
-  @override
-  String get reportHarassmentSubtitle => 'PdR 125 — Parità di genere';
-
-  @override
-  String get reportMisconduct => 'Segnala illecito';
-
-  @override
-  String get reportMisconductSubtitle => 'Whistleblowing — D.Lgs. 24/2023';
+  String get noActiveForms =>
+      'Nessun modulo disponibile. Contatta la tua organizzazione.';
 
   @override
   String get fillSurvey => 'Compila questionario';
@@ -75,7 +67,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get noActiveSurveys => 'Nessun questionario attivo disponibile.';
 
   @override
-  String get surveySubmitted => 'Questionario inviato con successo';
+  String get surveySubmitted => 'Inviato con successo';
 
   @override
   String get alreadySubmitted => 'Hai già compilato questo questionario.';

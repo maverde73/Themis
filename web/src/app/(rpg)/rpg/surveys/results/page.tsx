@@ -1,25 +1,32 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
+import { Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import {
   getSurveyResults,
+  getPrivateEvents,
+  exportSurveyResultsPdf,
   type SurveyResults,
-  type AggregatedQuestion,
+  type PrivateNostrEvent,
 } from "@/lib/api";
+import { SurveyResultsView } from "@/components/survey-results-view";
 import { isAuthenticated } from "@/lib/auth";
+import { PageHeader } from "@/components/page-header";
+import { SkeletonPage } from "@/components/skeleton-page";
+import { EmptyState } from "@/components/empty-state";
+import { EncryptedResponseViewer } from "@/components/encrypted-response-viewer";
 
 export default function SurveyResultsPage() {
   return (
-    <Suspense fallback={<main className="flex flex-1 items-center justify-center p-6"><p className="text-muted-foreground">Loading...</p></main>}>
+    <Suspense fallback={<SkeletonPage />}>
       <SurveyResultsContent />
     </Suspense>
   );
@@ -31,8 +38,28 @@ function SurveyResultsContent() {
   const surveyId = searchParams.get("surveyId");
 
   const [results, setResults] = useState<SurveyResults | null>(null);
+  const [privateEvents, setPrivateEvents] = useState<PrivateNostrEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportPdf = useCallback(async () => {
+    if (!surveyId) return;
+    setExporting(true);
+    try {
+      const blob = await exportSurveyResultsPdf(surveyId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `survey-results-${surveyId.slice(0, 8)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore nell'esportazione");
+    } finally {
+      setExporting(false);
+    }
+  }, [surveyId]);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -45,8 +72,14 @@ function SurveyResultsContent() {
       return;
     }
 
-    getSurveyResults(surveyId)
-      .then(setResults)
+    Promise.all([
+      getSurveyResults(surveyId),
+      getPrivateEvents().catch(() => [] as PrivateNostrEvent[]),
+    ])
+      .then(([res, events]) => {
+        setResults(res);
+        setPrivateEvents(events);
+      })
       .catch((err: unknown) =>
         setError(err instanceof Error ? err.message : "Failed to load results"),
       )
@@ -54,216 +87,51 @@ function SurveyResultsContent() {
   }, [router, surveyId]);
 
   if (loading) {
-    return (
-      <main className="flex flex-1 items-center justify-center p-6">
-        <p className="text-muted-foreground">Loading results...</p>
-      </main>
-    );
+    return <SkeletonPage />;
   }
 
   if (error || !results) {
     return (
-      <main className="flex flex-1 items-center justify-center p-6">
+      <div className="flex flex-1 items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Error</CardTitle>
             <CardDescription>{error ?? "No data"}</CardDescription>
           </CardHeader>
         </Card>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="mx-auto max-w-4xl p-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight">{results.title}</h1>
-        <p className="text-sm text-muted-foreground">
-          {results.totalResponses} response{results.totalResponses !== 1 ? "s" : ""} — version {results.version}
-        </p>
+    <div className="mx-auto max-w-4xl">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-8">
+        <PageHeader
+          title={results.title}
+          subtitle={`${results.totalResponses} response${results.totalResponses !== 1 ? "s" : ""} — version ${results.version}`}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={exporting}
+          onClick={handleExportPdf}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Esporta PDF
+        </Button>
       </div>
 
-      <div className="flex flex-col gap-6">
-        {results.questions.map((q) => (
-          <QuestionResult key={q.questionId} question={q} />
-        ))}
-      </div>
+      <SurveyResultsView results={results} />
 
-      {results.questions.length === 0 && (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <p className="text-muted-foreground">No responses yet.</p>
-          </CardContent>
-        </Card>
+      {/* Private encrypted responses */}
+      {privateEvents.length > 0 && (
+        <EncryptedResponseViewer encryptedEvents={privateEvents} />
       )}
-    </main>
-  );
-}
 
-function QuestionResult({ question }: { question: AggregatedQuestion }) {
-  const data = question.data ?? {};
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base">{question.label}</CardTitle>
-          <Badge variant="outline">{question.type}</Badge>
-        </div>
-        <CardDescription>
-          {question.responseCount} response{question.responseCount !== 1 ? "s" : ""}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {question.type === "choice" || question.type === "multi_choice"
-          ? <ChoiceBars data={data as Record<string, number>} total={question.responseCount} />
-          : null}
-
-        {question.type === "rating"
-          ? <RatingDisplay data={data as { avg: number; median: number; distribution: Record<string, number> }} />
-          : null}
-
-        {question.type === "nps"
-          ? <NpsDisplay data={data as { score: number; promoters: number; passives: number; detractors: number }} />
-          : null}
-
-        {question.type === "ranking"
-          ? <RankingDisplay data={data as Record<string, number>} />
-          : null}
-
-        {question.type === "likert"
-          ? <LikertDisplay data={data as Record<string, Record<string, number>>} />
-          : null}
-
-        {(question.type === "text" || question.type === "long_text")
-          ? <p className="text-sm text-muted-foreground">{(data as { count?: number }).count ?? 0} text responses (content is private)</p>
-          : null}
-
-        {question.type === "date"
-          ? <p className="text-sm">Range: {(data as { min?: string }).min ?? "N/A"} — {(data as { max?: string }).max ?? "N/A"}</p>
-          : null}
-      </CardContent>
-    </Card>
-  );
-}
-
-function ChoiceBars({ data, total }: { data: Record<string, number>; total: number }) {
-  const sorted = Object.entries(data).sort(([, a], [, b]) => b - a);
-  if (sorted.length === 0) return <p className="text-sm text-muted-foreground">No data</p>;
-
-  return (
-    <div className="space-y-2">
-      {sorted.map(([label, count]) => {
-        const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-        return (
-          <div key={label}>
-            <div className="flex items-center justify-between text-sm mb-1">
-              <span>{label}</span>
-              <span className="text-muted-foreground">{count} ({pct}%)</span>
-            </div>
-            <div className="h-2 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full rounded-full bg-primary"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function RatingDisplay({ data }: { data: { avg: number; median: number; distribution: Record<string, number> } }) {
-  return (
-    <div className="flex gap-8">
-      <div>
-        <p className="text-3xl font-bold">{data.avg}</p>
-        <p className="text-xs text-muted-foreground">Average</p>
-      </div>
-      <div>
-        <p className="text-3xl font-bold">{data.median}</p>
-        <p className="text-xs text-muted-foreground">Median</p>
-      </div>
-      {data.distribution && (
-        <div className="flex-1">
-          <div className="flex gap-1 items-end h-12">
-            {Object.entries(data.distribution)
-              .sort(([a], [b]) => Number(a) - Number(b))
-              .map(([val, count]) => (
-                <div key={val} className="flex-1 flex flex-col items-center">
-                  <div
-                    className="w-full bg-primary rounded-t"
-                    style={{ height: `${Math.max(4, count * 12)}px` }}
-                  />
-                  <span className="text-xs text-muted-foreground mt-1">{val}</span>
-                </div>
-              ))}
-          </div>
-        </div>
+      {results.questions.length === 0 && privateEvents.length === 0 && (
+        <EmptyState title="No responses yet" description="Responses will appear here as they are submitted." />
       )}
     </div>
   );
 }
 
-function NpsDisplay({ data }: { data: { score: number; promoters: number; passives: number; detractors: number } }) {
-  const total = data.promoters + data.passives + data.detractors;
-  return (
-    <div className="flex gap-8 items-center">
-      <div>
-        <p className="text-4xl font-bold">{data.score}</p>
-        <p className="text-xs text-muted-foreground">NPS Score</p>
-      </div>
-      <div className="flex-1 space-y-1">
-        <div className="flex justify-between text-sm">
-          <span className="text-green-600">Promoters (9-10)</span>
-          <span>{data.promoters} ({total > 0 ? Math.round((data.promoters / total) * 100) : 0}%)</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-yellow-600">Passives (7-8)</span>
-          <span>{data.passives} ({total > 0 ? Math.round((data.passives / total) * 100) : 0}%)</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-red-600">Detractors (0-6)</span>
-          <span>{data.detractors} ({total > 0 ? Math.round((data.detractors / total) * 100) : 0}%)</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RankingDisplay({ data }: { data: Record<string, number> }) {
-  const sorted = Object.entries(data).sort(([, a], [, b]) => a - b);
-  return (
-    <div className="space-y-1">
-      {sorted.map(([label, avgPos], i) => (
-        <div key={label} className="flex items-center gap-3 py-1">
-          <span className="text-sm font-bold text-muted-foreground w-6">#{i + 1}</span>
-          <span className="text-sm flex-1">{label}</span>
-          <span className="text-xs text-muted-foreground">avg position: {avgPos}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function LikertDisplay({ data }: { data: Record<string, Record<string, number>> }) {
-  return (
-    <div className="space-y-3">
-      {Object.entries(data).map(([statement, counts]) => (
-        <div key={statement}>
-          <p className="text-sm font-medium mb-1">{statement}</p>
-          <div className="flex gap-2">
-            {Object.entries(counts)
-              .sort(([a], [b]) => Number(a) - Number(b))
-              .map(([level, count]) => (
-                <Badge key={level} variant="outline">
-                  {level}: {count}
-                </Badge>
-              ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}

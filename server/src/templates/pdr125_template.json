@@ -1,0 +1,317 @@
+{
+  "_meta": {
+    "channel": "PDR125",
+    "icon": "shield",
+    "catalogTitle": { "it": "Segnalazione Abusi e Molestie", "en": "Abuse and Harassment Report" },
+    "catalogDescription": { "it": "Modulo conforme UNI/PdR 125:2022", "en": "UNI/PdR 125:2022 compliant form" }
+  },
+  "title": {
+    "it": "Segnalazione Abusi, Molestie e Discriminazioni",
+    "en": "Report Abuse, Harassment and Discrimination"
+  },
+  "description": {
+    "it": "Questo modulo è riservato alla segnalazione di comportamenti discriminatori, molestie, abusi o microaggressioni. La compilazione è anonima: non ti verrà chiesto il nome o l'indirizzo email. Le risposte sono accessibili esclusivamente al/alla Responsabile per la Parità di Genere. Per segnalare illeciti, frodi o violazioni normative, utilizza invece il canale di whistleblowing aziendale.\n\nNota bene: La segnalazione in malafede è sanzionabile disciplinarmente.",
+    "en": "This form is for reporting discrimination, harassment, abuse or microaggressions. It is anonymous: you will not be asked for your name or email address. Responses are accessible only to the Gender Equality Officer. To report fraud, illegal activities or regulatory violations, please use the corporate whistleblowing channel instead.\n\nPlease note: Bad-faith reports may result in disciplinary action."
+  },
+  "buttonLabel": {
+    "it": "Segnala molestia",
+    "en": "Report harassment"
+  },
+  "buttonDescription": {
+    "it": "UNI/PdR 125:2022 — Parità di genere",
+    "en": "UNI/PdR 125:2022 — Gender equality"
+  },
+  "questions": [
+    {
+      "id": "privacy_notice",
+      "type": "section",
+      "label": {
+        "it": "Informativa sul trattamento dei dati personali",
+        "en": "Privacy notice"
+      },
+      "description": {
+        "it": "Ai sensi del Regolamento (UE) 2016/679 (GDPR) e del D.Lgs. 196/2003 come modificato dal D.Lgs. 101/2018, informiamo che:\n\n1. Titolare del trattamento: la tua organizzazione, nella persona del legale rappresentante pro tempore.\n\n2. Finalità e base giuridica: i dati eventualmente forniti sono trattati esclusivamente per la gestione della segnalazione, nell'ambito del sistema di parità di genere ai sensi della UNI/PdR 125:2022. Base giuridica: art. 9, par. 2, lett. b) GDPR.\n\n3. Dati trattati: il modulo non richiede dati identificativi. Se scegli di fornire un contatto, sarà trattato con la massima riservatezza.\n\n4. Destinatari: i dati sono accessibili esclusivamente al/alla Responsabile per la Parità di Genere.\n\n5. Conservazione: non oltre 5 anni dalla chiusura del procedimento, salvo obblighi di legge.\n\n6. Diritti: se hai fornito dati identificativi, puoi esercitare i diritti artt. 15-22 GDPR.\n\n7. Protezione da ritorsioni: nessuna misura ritorsiva sarà adottata nei confronti di chi segnala in buona fede.\n\nCompilando il modulo dichiari di aver preso visione della presente informativa.",
+        "en": "Pursuant to Regulation (EU) 2016/679 (GDPR) and Italian Legislative Decree 196/2003 as amended by Legislative Decree 101/2018, we inform you that:\n\n1. Data controller: your organization, represented by its legal representative.\n\n2. Purpose and legal basis: any data provided will be processed solely for handling the report, within the gender equality system under UNI/PdR 125:2022. Legal basis: Art. 9(2)(b) GDPR.\n\n3. Data processed: this form does not require identifying information. If you choose to provide contact details, they will be treated with the utmost confidentiality.\n\n4. Recipients: data is accessible only to the Gender Equality Officer.\n\n5. Retention: no longer than 5 years after case closure, unless required by law.\n\n6. Rights: if you provided identifying data, you may exercise your rights under Art. 15-22 GDPR.\n\n7. Protection from retaliation: no retaliatory measures will be taken against anyone reporting in good faith.\n\nBy completing this form you acknowledge that you have read this privacy notice."
+      }
+    },
+    {
+      "id": "category",
+      "type": "multi_choice",
+      "label": {
+        "it": "Natura del comportamento segnalato",
+        "en": "Nature of the reported behavior"
+      },
+      "description": {
+        "it": "Seleziona una o più voci",
+        "en": "Select one or more options"
+      },
+      "required": true,
+      "accessLevel": 4,
+      "options": [
+        {
+          "value": "molestia_sessuale",
+          "label": {
+            "it": "Molestia sessuale — Comportamenti, commenti o azioni a sfondo sessuale non desiderati",
+            "en": "Sexual harassment — Unwanted sexual behavior, comments or actions"
+          }
+        },
+        {
+          "value": "discriminazione_genere",
+          "label": {
+            "it": "Discriminazione di genere — Trattamento sfavorevole legato al genere, all'identità di genere o alla maternità/paternità",
+            "en": "Gender discrimination — Unfavorable treatment based on gender, gender identity or parental status"
+          }
+        },
+        {
+          "value": "mobbing",
+          "label": {
+            "it": "Mobbing / Abuso di potere — Comportamenti sistematici di pressione, isolamento o umiliazione",
+            "en": "Mobbing / Abuse of power — Systematic pressure, isolation or humiliation"
+          }
+        },
+        {
+          "value": "linguaggio_offensivo",
+          "label": {
+            "it": "Linguaggio offensivo — Commenti, battute o linguaggio denigratorio legato al genere",
+            "en": "Offensive language — Derogatory comments, jokes or language related to gender"
+          }
+        },
+        {
+          "value": "microaggressioni",
+          "label": {
+            "it": "Microaggressioni — Comportamenti sottili ma ricorrenti che trasmettono messaggi negativi",
+            "en": "Microaggressions — Subtle but recurring behaviors conveying negative messages"
+          }
+        },
+        {
+          "value": "altro",
+          "label": {
+            "it": "Altro",
+            "en": "Other"
+          }
+        }
+      ]
+    },
+    {
+      "id": "category_other",
+      "type": "text",
+      "label": {
+        "it": "Specifica la natura del comportamento",
+        "en": "Specify the nature of the behavior"
+      },
+      "accessLevel": 2,
+      "showIf": {
+        "field": "category",
+        "op": "contains",
+        "value": "altro"
+      }
+    },
+    {
+      "id": "description",
+      "type": "long_text",
+      "label": {
+        "it": "Descrizione dell'accaduto",
+        "en": "Description of the incident"
+      },
+      "description": {
+        "it": "Descrivi l'episodio con le parole che preferisci. Non è necessario fornire dettagli personali se non lo desideri.",
+        "en": "Describe the incident in your own words. You do not need to provide personal details if you prefer not to."
+      },
+      "required": true,
+      "accessLevel": 2
+    },
+    {
+      "id": "when",
+      "type": "text",
+      "label": {
+        "it": "Quando è accaduto",
+        "en": "When did it happen"
+      },
+      "description": {
+        "it": "Indica una data approssimativa o un periodo (es. ottobre 2024, ultimo trimestre...)",
+        "en": "Provide an approximate date or time period (e.g. October 2024, last quarter...)"
+      },
+      "accessLevel": 2
+    },
+    {
+      "id": "where",
+      "type": "choice",
+      "label": {
+        "it": "Dove è accaduto",
+        "en": "Where did it happen"
+      },
+      "accessLevel": 4,
+      "options": [
+        {
+          "value": "sede",
+          "label": {
+            "it": "In sede (ufficio, spazi comuni, ecc.)",
+            "en": "On premises (office, common areas, etc.)"
+          }
+        },
+        {
+          "value": "remoto",
+          "label": {
+            "it": "Da remoto / in videocall",
+            "en": "Remote / video call"
+          }
+        },
+        {
+          "value": "trasferta",
+          "label": {
+            "it": "In trasferta o evento esterno",
+            "en": "Business trip or external event"
+          }
+        },
+        {
+          "value": "comunicazione_scritta",
+          "label": {
+            "it": "Tramite comunicazione scritta (email, chat)",
+            "en": "Via written communication (email, chat)"
+          }
+        },
+        {
+          "value": "altro",
+          "label": {
+            "it": "Altro",
+            "en": "Other"
+          }
+        }
+      ]
+    },
+    {
+      "id": "where_other",
+      "type": "text",
+      "label": {
+        "it": "Specifica il luogo",
+        "en": "Specify the location"
+      },
+      "accessLevel": 2,
+      "showIf": {
+        "field": "where",
+        "op": "eq",
+        "value": "altro"
+      }
+    },
+    {
+      "id": "people_involved",
+      "type": "text",
+      "label": {
+        "it": "Persone coinvolte",
+        "en": "People involved"
+      },
+      "description": {
+        "it": "Facoltativo. Puoi indicare il ruolo o il reparto senza necessariamente fornire il nome.",
+        "en": "Optional. You may indicate the role or department without necessarily providing a name."
+      },
+      "accessLevel": 1
+    },
+    {
+      "id": "witnesses",
+      "type": "choice",
+      "label": {
+        "it": "Erano presenti testimoni?",
+        "en": "Were witnesses present?"
+      },
+      "accessLevel": 4,
+      "options": [
+        {
+          "value": "yes",
+          "label": {
+            "it": "Sì, erano presenti altre persone",
+            "en": "Yes, other people were present"
+          }
+        },
+        {
+          "value": "no",
+          "label": {
+            "it": "No, eravamo soli",
+            "en": "No, we were alone"
+          }
+        },
+        {
+          "value": "unsure",
+          "label": {
+            "it": "Non sono sicuro/a",
+            "en": "I'm not sure"
+          }
+        }
+      ]
+    },
+    {
+      "id": "previous_report",
+      "type": "choice",
+      "label": {
+        "it": "Hai già parlato con qualcuno?",
+        "en": "Have you already spoken to anyone?"
+      },
+      "accessLevel": 4,
+      "options": [
+        {
+          "value": "trusted_person",
+          "label": {
+            "it": "Sì, con una persona di fiducia",
+            "en": "Yes, with someone I trust"
+          }
+        },
+        {
+          "value": "hr_manager",
+          "label": {
+            "it": "Sì, con HR o un responsabile",
+            "en": "Yes, with HR or a manager"
+          }
+        },
+        {
+          "value": "first_report",
+          "label": {
+            "it": "No, è la prima segnalazione",
+            "en": "No, this is the first report"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wants_contact",
+      "type": "choice",
+      "label": {
+        "it": "Desideri essere ricontattato/a?",
+        "en": "Would you like to be contacted?"
+      },
+      "accessLevel": 5,
+      "options": [
+        {
+          "value": "yes",
+          "label": {
+            "it": "Sì",
+            "en": "Yes"
+          }
+        },
+        {
+          "value": "no",
+          "label": {
+            "it": "No, preferisco restare anonimo/a",
+            "en": "No, I prefer to remain anonymous"
+          }
+        }
+      ]
+    },
+    {
+      "id": "contact_info",
+      "type": "text",
+      "label": {
+        "it": "Contatto (email o numero di telefono)",
+        "en": "Contact (email or phone number)"
+      },
+      "description": {
+        "it": "Facoltativo. Il contatto sarà visibile solo al/alla Responsabile per la Parità di Genere.",
+        "en": "Optional. Your contact will only be visible to the Gender Equality Officer."
+      },
+      "accessLevel": 0,
+      "showIf": {
+        "field": "wants_contact",
+        "op": "eq",
+        "value": "yes"
+      }
+    }
+  ]
+}

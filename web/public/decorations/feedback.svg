@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" fill="none">
+  <circle cx="200" cy="300" r="180" fill="#FFF3E0" opacity="0.5"/>
+  <!-- Speech bubble large -->
+  <rect x="100" y="150" width="200" height="130" rx="20" fill="#fff" stroke="#FF9800" stroke-width="3"/>
+  <polygon points="160,280 180,280 150,310" fill="#fff" stroke="#FF9800" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="162,278 178,278 152,305" fill="#fff"/>
+  <!-- Stars inside bubble -->
+  <polygon points="160,200 165,215 180,215 168,223 172,238 160,228 148,238 152,223 140,215 155,215" fill="#FFC107"/>
+  <polygon points="210,190 215,205 230,205 218,213 222,228 210,218 198,228 202,213 190,205 205,205" fill="#FFC107"/>
+  <polygon points="260,200 265,215 280,215 268,223 272,238 260,228 248,238 252,223 240,215 255,215" fill="#FFE082"/>
+  <!-- Small bubble -->
+  <rect x="180" y="340" width="140" height="80" rx="16" fill="#fff" stroke="#4CAF50" stroke-width="2.5"/>
+  <polygon points="260,420 275,420 290,445" fill="#fff" stroke="#4CAF50" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon points="262,418 273,418 287,440" fill="#fff"/>
+  <!-- Thumb up in small bubble -->
+  <path d="M230,370 L230,395 L250,395 L255,370 Z" fill="#4CAF50"/>
+  <path d="M255,375 L268,375 C272,375 274,378 273,382 L270,395 L250,395 L255,375 Z" fill="#66BB6A"/>
+  <!-- Person -->
+  <circle cx="150" cy="450" r="30" fill="#FF9800"/>
+  <ellipse cx="150" cy="530" rx="42" ry="45" fill="#F57C00"/>
+</svg>

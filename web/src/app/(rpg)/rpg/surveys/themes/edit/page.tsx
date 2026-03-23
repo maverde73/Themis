@@ -25,13 +25,15 @@ import {
   type ThemeSpacing,
   type ThemeButtons,
   type ThemeCard,
+  type ThemeDecoration,
 } from "@/lib/api";
+import { BUILTIN_DECORATIONS, getDecorationSrc, DECORATION_SIZE_MAP } from "@/lib/decorations";
 import { isAuthenticated } from "@/lib/auth";
 import { SkeletonPage } from "@/components/skeleton-page";
 
 // ── Types ────────────────────────────────────────────────────────────
 
-type Section = "colors" | "typography" | "spacing" | "buttons" | "card";
+type Section = "colors" | "typography" | "spacing" | "buttons" | "card" | "decoration";
 
 const SECTIONS: { key: Section; label: string }[] = [
   { key: "colors", label: "Colori" },
@@ -39,6 +41,7 @@ const SECTIONS: { key: Section; label: string }[] = [
   { key: "spacing", label: "Spaziatura" },
   { key: "buttons", label: "Bottoni" },
   { key: "card", label: "Card" },
+  { key: "decoration", label: "Decorazione" },
 ];
 
 const COLOR_LABELS: Record<keyof ThemeColors, string> = {
@@ -57,10 +60,11 @@ const COLOR_LABELS: Record<keyof ThemeColors, string> = {
   inputFocus: "Focus input",
   selectionHighlight: "Selezione",
   required: "Obbligatorio",
+  surveyBackground: "Sfondo sondaggio",
 };
 
 // Fields that support gradients (in addition to solid colors)
-const GRADIENT_FIELDS: Set<keyof ThemeColors> = new Set(["pageBackground", "surface"]);
+const GRADIENT_FIELDS: Set<keyof ThemeColors> = new Set(["pageBackground", "surface", "surveyBackground"]);
 const GRADIENT_BTN_FIELDS: Set<keyof ThemeButtons> = new Set(["backgroundColor"]);
 const GRADIENT_CARD_FIELDS: Set<keyof ThemeCard> = new Set(["backgroundColor"]);
 
@@ -175,9 +179,14 @@ function ThemeEditContent() {
     setConfig({ ...config, buttons: { ...config.buttons, [key]: value } });
   }
 
-  function updateCard(key: keyof ThemeCard, value: string) {
+  function updateCard<K extends keyof ThemeCard>(key: K, value: ThemeCard[K]) {
     if (!config) return;
     setConfig({ ...config, card: { ...config.card, [key]: value } });
+  }
+
+  function updateDecoration<K extends keyof ThemeDecoration>(key: K, value: ThemeDecoration[K]) {
+    if (!config) return;
+    setConfig({ ...config, decoration: { ...config.decoration, [key]: value } });
   }
 
   if (loading || !config) return <SkeletonPage />;
@@ -522,6 +531,166 @@ function ThemeEditContent() {
                       </div>
                     ))}
                   </div>
+                  {/* Background opacity */}
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-xs">
+                      Opacit&agrave; sfondo: {Math.round(config.card.backgroundOpacity * 100)}%
+                    </Label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={Math.round(config.card.backgroundOpacity * 100)}
+                      onChange={(e) => updateCard("backgroundOpacity", Number(e.target.value) / 100)}
+                      className="w-full"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {activeSection === "decoration" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Decorazione</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  {/* Type selector */}
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-xs">Tipo</Label>
+                    <div className="flex gap-2">
+                      {([
+                        ["none", "Nessuna"],
+                        ["builtin", "Predefinita"],
+                        ["url", "URL esterno"],
+                      ] as const).map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => updateDecoration("type", value)}
+                          className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                            config.decoration.type === value
+                              ? "bg-primary text-primary-foreground"
+                              : "border bg-background text-muted-foreground hover:bg-accent"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Builtin selector */}
+                  {config.decoration.type === "builtin" && (
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-xs">Illustrazione</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {BUILTIN_DECORATIONS.map((dec) => (
+                          <button
+                            key={dec.id}
+                            type="button"
+                            onClick={() => updateDecoration("builtinId", dec.id)}
+                            className={`flex flex-col items-center gap-1 rounded-lg border-2 p-2 transition-colors ${
+                              config.decoration.builtinId === dec.id
+                                ? "border-primary bg-primary/5"
+                                : "border-transparent bg-muted/50 hover:bg-muted"
+                            }`}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={dec.src}
+                              alt={dec.label}
+                              className="h-16 w-16 object-contain"
+                            />
+                            <span className="text-xs">{dec.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* URL input */}
+                  {config.decoration.type === "url" && (
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-xs">URL immagine</Label>
+                      <Input
+                        value={config.decoration.url ?? ""}
+                        onChange={(e) => updateDecoration("url", e.target.value || null)}
+                        placeholder="https://example.com/image.svg"
+                        className="font-mono text-xs"
+                      />
+                      {config.decoration.url && (
+                        <div className="mt-1 flex justify-center rounded-lg border bg-muted/30 p-2">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={config.decoration.url}
+                            alt="Anteprima"
+                            className="h-20 object-contain"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {config.decoration.type !== "none" && (
+                    <>
+                      {/* Position */}
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs">Posizione</Label>
+                        <div className="flex gap-2">
+                          {([
+                            ["right", "Destra"],
+                            ["left", "Sinistra"],
+                            ["background", "Sfondo"],
+                          ] as const).map(([value, label]) => (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => updateDecoration("position", value)}
+                              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                                config.decoration.position === value
+                                  ? "bg-primary text-primary-foreground"
+                                  : "border bg-background text-muted-foreground hover:bg-accent"
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Size — hidden for background position */}
+                      {config.decoration.position !== "background" && (
+                        <div className="flex flex-col gap-1.5">
+                          <Label className="text-xs">Dimensione</Label>
+                          <select
+                            value={config.decoration.size}
+                            onChange={(e) => updateDecoration("size", e.target.value as ThemeDecoration["size"])}
+                            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                          >
+                            <option value="small">Piccola (25%)</option>
+                            <option value="medium">Media (33%)</option>
+                            <option value="large">Grande (40%)</option>
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Opacity */}
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs">
+                          Opacita: {Math.round(config.decoration.opacity * 100)}%
+                        </Label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={Math.round(config.decoration.opacity * 100)}
+                          onChange={(e) => updateDecoration("opacity", Number(e.target.value) / 100)}
+                          className="w-full"
+                        />
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -548,19 +717,57 @@ function ThemeMiniPreview({ config }: { config: ThemeConfig }) {
   const sp = config.spacing;
   const btn = config.buttons;
   const cd = config.card;
+  const dec = config.decoration;
+
+  const decorationSrc = getDecorationSrc(dec.type, dec.builtinId, dec.url);
+  const hasDecoration = dec.type !== "none" && !!decorationSrc;
+
+  const isBgDecoration = hasDecoration && dec.position === "background";
+  const isSideDecoration = hasDecoration && dec.position !== "background";
 
   return (
     <div
       style={{
+        position: "relative",
         background: c.pageBackground,
         borderRadius: sp.borderRadius,
         padding: "16px",
+        display: isSideDecoration ? "flex" : undefined,
+        flexDirection: isSideDecoration && dec.position === "left" ? "row-reverse" : undefined,
+        gap: isSideDecoration ? "8px" : undefined,
+        overflow: "hidden",
       }}
     >
+      {/* Background decoration */}
+      {isBgDecoration && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            overflow: "hidden",
+            pointerEvents: "none",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={decorationSrc!}
+            alt=""
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              objectPosition: "center",
+              opacity: dec.opacity,
+            }}
+          />
+        </div>
+      )}
       {/* Card */}
       <div
         style={{
-          background: cd.backgroundColor,
+          position: "relative",
+          flex: isSideDecoration ? 1 : undefined,
+          minWidth: 0,
           borderColor: cd.borderColor,
           borderWidth: cd.borderWidth,
           borderStyle: "solid",
@@ -571,8 +778,22 @@ function ThemeMiniPreview({ config }: { config: ThemeConfig }) {
           color: c.text,
           fontSize: ty.bodySize as string,
           lineHeight: String(ty.lineHeight),
+          overflow: "hidden",
         }}
       >
+        {/* Card background layer with opacity — transparent reveals decoration behind */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: c.surveyBackground,
+            opacity: cd.backgroundOpacity,
+            pointerEvents: "none",
+            borderRadius: "inherit",
+          }}
+        />
+        {/* Content above background layer */}
+        <div style={{ position: "relative" }}>
         {/* Title */}
         <h3
           style={{
@@ -689,7 +910,35 @@ function ThemeMiniPreview({ config }: { config: ThemeConfig }) {
         >
           Invia
         </button>
+        </div>
       </div>
+      {/* Decoration panel (side only) */}
+      {isSideDecoration && (
+        <div
+          style={{
+            width: DECORATION_SIZE_MAP[dec.size] ?? "33%",
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden",
+            borderRadius: sp.borderRadius,
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={decorationSrc!}
+            alt=""
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              objectPosition: "center",
+              opacity: dec.opacity,
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

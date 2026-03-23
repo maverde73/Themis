@@ -41,5 +41,9 @@ npm-debug.log*
 pgdata/
 relaydata/
 
+# Test artifacts (screenshots, playwright logs)
+.test-artifacts/
+.playwright-mcp/
+
 # Claude
 .claude/

@@ -15,6 +15,10 @@ import {
   Eye,
   Sparkles,
   Palette,
+  Send,
+  Copy,
+  ExternalLink,
+  CheckCircle2,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +70,7 @@ interface QuestionState {
   description: I18nMap;
   required: boolean;
   private: boolean;
+  accessLevel: number;
   options: QuestionOption[];
   statements: QuestionOption[];
   min?: number;
@@ -74,6 +79,15 @@ interface QuestionState {
   maxLabel: I18nMap;
   showIf?: unknown;
 }
+
+const ACCESS_LEVEL_LABELS: Record<number, string> = {
+  0: "Solo responsabile",
+  1: "Livello 1",
+  2: "Comitato Guida",
+  3: "Livello 3",
+  4: "Auditor",
+  5: "Pubblico (aggregabile)",
+};
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -186,6 +200,7 @@ function parseQuestion(
     description: toI18n(q.description, langs),
     required: (q.required as boolean) ?? false,
     private: (q.private as boolean) ?? false,
+    accessLevel: (q.accessLevel as number) ?? (q.private ? 0 : 5),
     options: Array.isArray(q.options)
       ? q.options.map((o) => parseOption(o, langs))
       : [],
@@ -207,7 +222,7 @@ function questionToSchema(q: QuestionState): Record<string, unknown> {
     label: { ...q.label },
     required: q.required,
   };
-  if (q.private) out.private = true;
+  if (q.accessLevel < 5) out.accessLevel = q.accessLevel;
   if (Object.values(q.description).some((v) => v))
     out.description = { ...q.description };
   if (TYPES_WITH_OPTIONS.includes(q.type) && q.options.length > 0) {
@@ -331,6 +346,7 @@ function SurveyEditContent() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
 
   // Languages
   const [languages, setLanguages] = useState<string[]>(["it"]);
@@ -556,6 +572,31 @@ function SurveyEditContent() {
     }
   }
 
+  async function handlePublish() {
+    if (!surveyId) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const schema = buildSchema();
+      await updateSurvey(surveyId, {
+        title: title[primaryLang] || survey?.title,
+        description:
+          Object.values(desc).find((v) => v) || undefined,
+        schema,
+        channel: channel ? (channel as FormChannel) : null,
+        themeId,
+        status: "ACTIVE",
+      });
+      setPublishedUrl(`${window.location.origin}/s/${surveyId}`);
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : "Errore nella pubblicazione",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
   // ── Question mutators ─────────────────────────────────────────────
 
   function updateQuestion(idx: number, patch: Partial<QuestionState>) {
@@ -587,6 +628,7 @@ function SurveyEditContent() {
         description: emptyI18n(languages),
         required: false,
         private: false,
+        accessLevel: 5,
         options: [],
         statements: [],
         minLabel: emptyI18n(languages),
@@ -814,6 +856,12 @@ function SurveyEditContent() {
             <Button size="sm" onClick={handleSave} disabled={saving}>
               {saving ? "Salvataggio..." : "Salva"}
             </Button>
+            {survey.status === "DRAFT" && (
+              <Button size="sm" onClick={handlePublish} disabled={saving}>
+                <Send className="mr-1 h-3.5 w-3.5" />
+                Pubblica
+              </Button>
+            )}
           </div>
         </div>
 
@@ -857,6 +905,42 @@ function SurveyEditContent() {
         <Card className="mb-4 border-destructive/50 bg-destructive/5">
           <CardContent className="py-3">
             <p className="text-sm text-destructive">{saveError}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {publishedUrl && (
+        <Card className="mb-4 border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950">
+          <CardContent className="flex items-center gap-3 py-4">
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-green-800 dark:text-green-200">
+                Sondaggio pubblicato!
+              </p>
+              <div className="mt-1 flex items-center gap-2">
+                <code className="truncate rounded bg-green-100 px-2 py-1 text-xs dark:bg-green-900">
+                  {publishedUrl}
+                </code>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="shrink-0"
+                  onClick={() => { navigator.clipboard.writeText(publishedUrl); }}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+                <a
+                  href={publishedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0"
+                >
+                  <Button size="sm" variant="ghost">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Button>
+                </a>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -968,7 +1052,11 @@ function SurveyEditContent() {
                 onValueChange={(v) => setThemeId(v === "none" ? null : v)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Nessun tema" />
+                  <SelectValue>
+                    {themeId
+                      ? themes.find((t) => t.id === themeId)?.name ?? "Caricamento…"
+                      : "Nessun tema"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Nessun tema</SelectItem>
@@ -978,7 +1066,7 @@ function SurveyEditContent() {
                         Predefiniti
                       </div>
                       {themes.filter((t) => t.isBuiltin).map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
+                        <SelectItem key={t.id} value={t.id} textValue={t.name}>
                           <span className="flex items-center gap-2">
                             <span
                               className="inline-block h-3 w-3 rounded-full border"
@@ -996,7 +1084,7 @@ function SurveyEditContent() {
                         I miei temi
                       </div>
                       {themes.filter((t) => !t.isBuiltin).map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
+                        <SelectItem key={t.id} value={t.id} textValue={t.name}>
                           <span className="flex items-center gap-2">
                             <span
                               className="inline-block h-3 w-3 rounded-full border"
@@ -1105,9 +1193,9 @@ function SurveyEditContent() {
                     Obbligatoria
                   </Badge>
                 )}
-                {q.private && (
+                {q.accessLevel < 5 && (
                   <Badge variant="destructive" className="text-xs">
-                    Privata
+                    Liv. {q.accessLevel}
                   </Badge>
                 )}
                 {isExpanded ? (
@@ -1166,17 +1254,23 @@ function SurveyEditContent() {
                         Obbligatoria
                       </label>
                       <label className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={q.private}
+                        <span className="text-muted-foreground">Livello accesso:</span>
+                        <select
+                          value={q.accessLevel}
                           onChange={(e) =>
                             updateQuestion(idx, {
-                              private: e.target.checked,
+                              accessLevel: Number(e.target.value),
+                              private: Number(e.target.value) < 5,
                             })
                           }
-                          className="h-4 w-4 rounded border-input"
-                        />
-                        Privata
+                          className="rounded border border-input bg-transparent px-2 py-1 text-sm"
+                        >
+                          {[0, 1, 2, 3, 4, 5].map((lv) => (
+                            <option key={lv} value={lv}>
+                              {lv} — {ACCESS_LEVEL_LABELS[lv]}
+                            </option>
+                          ))}
+                        </select>
                       </label>
                     </div>
                   </div>
@@ -1478,6 +1572,12 @@ function SurveyEditContent() {
         <Button onClick={handleSave} disabled={saving}>
           {saving ? "Salvataggio..." : "Salva"}
         </Button>
+        {survey.status === "DRAFT" && (
+          <Button onClick={handlePublish} disabled={saving}>
+            <Send className="mr-1 h-4 w-4" />
+            Pubblica
+          </Button>
+        )}
       </div>
 
       {/* Preview overlay */}

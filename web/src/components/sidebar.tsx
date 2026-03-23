@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -13,6 +13,10 @@ import {
   X,
   Palette,
   Building2,
+  FileWarning,
+  Lock,
+  LockOpen,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { clearAuth, getStoredUser } from "@/lib/auth";
@@ -29,13 +33,132 @@ export interface NavItem {
 export interface SidebarProps {
   title: string;
   items: NavItem[];
+  showCryptoLock?: boolean;
+}
+
+function CryptoLock() {
+  // Lazy-load to avoid hard dependency — only rendered when CryptoProvider wraps the tree
+  const [hook, setHook] = useState<(() => { isUnlocked: boolean; loading: boolean; unlock: (pw: string) => Promise<void>; lock: () => Promise<void> }) | null>(null);
+
+  useEffect(() => {
+    import("@/lib/crypto/crypto-context").then((m) => setHook(() => m.useCrypto)).catch(() => {});
+  }, []);
+
+  if (!hook) return null;
+  return <CryptoLockInner useCrypto={hook} />;
+}
+
+function CryptoLockInner({ useCrypto }: { useCrypto: () => { isUnlocked: boolean; loading: boolean; unlock: (pw: string) => Promise<void>; lock: () => Promise<void> } }) {
+  const { isUnlocked, loading, unlock, lock } = useCrypto();
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [unlocking, setUnlocking] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (showPrompt && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [showPrompt]);
+
+  async function handleUnlock() {
+    if (!password) return;
+    setError(null);
+    setUnlocking(true);
+    try {
+      await unlock(password);
+      setShowPrompt(false);
+      setPassword("");
+    } catch {
+      setError("Password non corretta");
+    } finally {
+      setUnlocking(false);
+    }
+  }
+
+  async function handleLock() {
+    await lock();
+  }
+
+  function handleToggle() {
+    if (isUnlocked) {
+      handleLock();
+    } else {
+      setShowPrompt(true);
+      setError(null);
+      setPassword("");
+    }
+  }
+
+  if (loading) return null;
+
+  return (
+    <div className="px-4 pb-3">
+      {!showPrompt ? (
+        <button
+          type="button"
+          onClick={handleToggle}
+          className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium transition-colors ${
+            isUnlocked
+              ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+              : "bg-muted/50 text-muted-foreground hover:bg-muted"
+          }`}
+        >
+          {isUnlocked ? (
+            <LockOpen className="h-3.5 w-3.5" />
+          ) : (
+            <Lock className="h-3.5 w-3.5" />
+          )}
+          {isUnlocked ? "Chiavi sbloccate" : "Sblocca chiavi"}
+        </button>
+      ) : (
+        <div className="rounded-md border border-sidebar-border bg-background/50 p-2.5">
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              type="password"
+              placeholder="Password chiave"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
+              disabled={unlocking}
+              className="h-8 flex-1 rounded border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+            <button
+              type="button"
+              onClick={handleUnlock}
+              disabled={!password || unlocking}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              {unlocking ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <LockOpen className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </div>
+          {error && (
+            <p className="mt-1.5 text-xs text-destructive">{error}</p>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowPrompt(false)}
+            className="mt-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            Annulla
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export const rpgNavItems: NavItem[] = [
-  { label: "Dashboard", href: "/rpg/dashboard", icon: LayoutDashboard, requireDataLevel: true },
+  { label: "Dashboard", href: "/rpg/dashboard", icon: BarChart3, requireDataLevel: true },
+  { label: "Segnalazioni", href: "/rpg/cases", icon: FileWarning, requireDataLevel: true },
   { label: "Moduli", href: "/rpg/surveys", icon: ClipboardList, requirePermission: "canEditSurveys" },
   { label: "Temi", href: "/rpg/surveys/themes", icon: Palette, requirePermission: "canEditThemes" },
-  { label: "Cruscotto", href: "/rpg/analytics", icon: BarChart3, requireDataLevel: true },
   { label: "Impostazioni", href: "/rpg/settings", icon: Settings, hideForRoles: ["TECHNICAL"] },
 ];
 
@@ -49,7 +172,7 @@ export const odvNavItems: NavItem[] = [
   { label: "Analytics", href: "/odv/analytics", icon: BarChart3 },
 ];
 
-export function Sidebar({ title, items }: SidebarProps) {
+export function Sidebar({ title, items, showCryptoLock }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -77,6 +200,9 @@ export function Sidebar({ title, items }: SidebarProps) {
           </p>
         )}
       </div>
+
+      {/* Crypto lock toggle */}
+      {showCryptoLock && <CryptoLock />}
 
       {/* Navigation */}
       <nav aria-label="Navigazione principale" className="flex-1 px-2">

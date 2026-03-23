@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" fill="none">
+  <circle cx="200" cy="300" r="180" fill="#FCE4EC" opacity="0.4"/>
+  <!-- Person 1 - left -->
+  <circle cx="100" cy="230" r="25" fill="#E91E63"/>
+  <ellipse cx="100" cy="300" rx="32" ry="38" fill="#C2185B"/>
+  <!-- Person 2 - center-left -->
+  <circle cx="170" cy="200" r="28" fill="#9C27B0"/>
+  <ellipse cx="170" cy="280" rx="35" ry="42" fill="#7B1FA2"/>
+  <!-- Person 3 - center-right -->
+  <circle cx="240" cy="200" r="28" fill="#2196F3"/>
+  <ellipse cx="240" cy="280" rx="35" ry="42" fill="#1565C0"/>
+  <!-- Person 4 - right -->
+  <circle cx="310" cy="230" r="25" fill="#4CAF50"/>
+  <ellipse cx="310" cy="300" rx="32" ry="38" fill="#2E7D32"/>
+  <!-- Hands holding -->
+  <path d="M130,290 Q150,270 170,290" stroke="#E0E0E0" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M200,290 Q210,270 240,290" stroke="#E0E0E0" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M270,290 Q280,270 310,290" stroke="#E0E0E0" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <!-- Hearts -->
+  <g transform="translate(150,140) scale(0.5)">
+    <path d="M20,35 Q20,10 0,10 Q-20,10 -20,35 Q-20,55 0,70 Q20,55 20,35Z" fill="#F48FB1"/>
+  </g>
+  <g transform="translate(260,130) scale(0.4)">
+    <path d="M20,35 Q20,10 0,10 Q-20,10 -20,35 Q-20,55 0,70 Q20,55 20,35Z" fill="#CE93D8"/>
+  </g>
+  <!-- Rainbow arc -->
+  <path d="M80,380 Q200,320 320,380" stroke="#E91E63" stroke-width="4" fill="none" opacity="0.5"/>
+  <path d="M90,390 Q200,335 310,390" stroke="#FF9800" stroke-width="4" fill="none" opacity="0.5"/>
+  <path d="M100,400 Q200,350 300,400" stroke="#4CAF50" stroke-width="4" fill="none" opacity="0.5"/>
+  <path d="M110,410 Q200,365 290,410" stroke="#2196F3" stroke-width="4" fill="none" opacity="0.5"/>
+  <!-- Base -->
+  <rect x="60" y="430" width="280" height="5" rx="2.5" fill="#F8BBD0" opacity="0.5"/>
+</svg>

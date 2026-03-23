@@ -30,7 +30,7 @@ export default function ThemesPage() {
     const user = getStoredUser();
     if (!user) return;
     try {
-      const res = await getThemes(user.orgId);
+      const res = await getThemes(user.orgId!);
       setThemes(res.themes);
     } catch {
       // ignore

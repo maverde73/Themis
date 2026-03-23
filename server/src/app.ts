@@ -3,7 +3,6 @@ import cors from "cors";
 import helmet from "helmet";
 import { config } from "./utils/config";
 import { errorHandler } from "./middleware/errorHandler";
-import { globalLimiter } from "./middleware/rateLimiter";
 import routes from "./routes";
 
 const app = express();
@@ -38,9 +37,6 @@ app.use(cors({
 
 // Body parsing
 app.use(express.json({ limit: "1mb" }));
-
-// Global rate limiter
-app.use(globalLimiter);
 
 // Disable X-Powered-By (helmet does this, but belt and suspenders)
 app.disable("x-powered-by");

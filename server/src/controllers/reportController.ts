@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import * as reportService from "../services/reportService";
+import * as pdfService from "../services/pdfService";
+import { listReportMetadataQuerySchema, exportRegistroQuerySchema } from "../types/schemas";
 
 export async function createMetadata(req: Request, res: Response, next: NextFunction) {
   try {
@@ -12,14 +14,13 @@ export async function createMetadata(req: Request, res: Response, next: NextFunc
 
 export async function listMetadata(req: Request, res: Response, next: NextFunction) {
   try {
-    const orgId = req.query.org_id as string;
-    const channel = req.query.channel as string | undefined;
-    if (!orgId) {
-      res.status(400).json({ error: "org_id query parameter required" });
+    const parsed = listReportMetadataQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Validation error", details: parsed.error.flatten() });
       return;
     }
-    const reports = await reportService.listMetadata(orgId, channel);
-    res.json(reports);
+    const result = await reportService.listMetadata(parsed.data);
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -61,6 +62,55 @@ export async function getSlaStatus(req: Request, res: Response, next: NextFuncti
     }
     const status = await reportService.getSlaStatus(orgId);
     res.json(status);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function exportRegistro(req: Request, res: Response, next: NextFunction) {
+  try {
+    const parsed = exportRegistroQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Validation error", details: parsed.error.flatten() });
+      return;
+    }
+
+    if (parsed.data.format === "json") {
+      const data = await pdfService.generateRegistroJson(parsed.data);
+      res.json(data);
+      return;
+    }
+
+    const buffer = await pdfService.generateRegistroPdf(parsed.data);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="registro-segnalazioni.pdf"`);
+    res.send(buffer);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function exportSchedaDati(req: Request, res: Response, next: NextFunction) {
+  try {
+    const orgId = req.query.org_id as string;
+    if (!orgId) {
+      res.status(400).json({ error: "org_id query parameter required" });
+      return;
+    }
+    const from = req.query.from as string | undefined;
+    const to = req.query.to as string | undefined;
+    const format = (req.query.format as string) || "pdf";
+
+    if (format === "json") {
+      const data = await pdfService.generateSchedaDati(orgId, from, to);
+      res.json(data);
+      return;
+    }
+
+    const buffer = await pdfService.generateSchedaDatiPdf(orgId, from, to);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="scheda-dati-riesame.pdf"`);
+    res.send(buffer);
   } catch (err) {
     next(err);
   }

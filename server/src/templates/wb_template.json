@@ -1,0 +1,124 @@
+{
+  "_meta": {
+    "channel": "WHISTLEBLOWING",
+    "icon": "gavel",
+    "catalogTitle": { "it": "Segnalazione Whistleblowing", "en": "Whistleblowing Report" },
+    "catalogDescription": { "it": "Modulo conforme D.Lgs. 24/2023", "en": "D.Lgs. 24/2023 compliant form" }
+  },
+  "title": { "it": "Segnalazione Whistleblowing", "en": "Whistleblowing Report" },
+  "description": { "it": "Segnala un illecito ai sensi del D.Lgs. 24/2023", "en": "Report misconduct under D.Lgs. 24/2023" },
+  "buttonLabel": { "it": "Segnala illecito", "en": "Report misconduct" },
+  "buttonDescription": { "it": "Whistleblowing — D.Lgs. 24/2023", "en": "Whistleblowing — D.Lgs. 24/2023" },
+  "questions": [
+    {
+      "id": "violation_type",
+      "type": "multi_choice",
+      "label": { "it": "Tipo di violazione", "en": "Violation type" },
+      "description": { "it": "Seleziona almeno un tipo", "en": "Select at least one type" },
+      "required": true,
+      "private": false,
+      "options": [
+        { "value": "penale", "label": { "it": "Illecito penale", "en": "Criminal offence" } },
+        { "value": "amministrativo", "label": { "it": "Illecito amministrativo", "en": "Administrative offence" } },
+        { "value": "contabile", "label": { "it": "Illecito contabile", "en": "Accounting offence" } },
+        { "value": "mog231", "label": { "it": "Violazione MOG 231", "en": "MOG 231 violation" } },
+        { "value": "diritto_ue", "label": { "it": "Violazione diritto UE", "en": "EU law violation" } },
+        { "value": "corruzione", "label": { "it": "Corruzione", "en": "Corruption" } },
+        { "value": "conflitto_interessi", "label": { "it": "Conflitto di interessi", "en": "Conflict of interest" } },
+        { "value": "danno_ambientale", "label": { "it": "Danno ambientale", "en": "Environmental damage" } },
+        { "value": "frode", "label": { "it": "Frode", "en": "Fraud" } },
+        { "value": "altro", "label": { "it": "Altro", "en": "Other" } }
+      ]
+    },
+    {
+      "id": "description",
+      "type": "long_text",
+      "label": { "it": "Descrizione", "en": "Description" },
+      "description": { "it": "Descrivi i fatti nel modo più dettagliato possibile", "en": "Describe the facts in as much detail as possible" },
+      "required": true,
+      "private": true
+    },
+    {
+      "id": "when",
+      "type": "text",
+      "label": { "it": "Quando è successo?", "en": "When did it happen?" },
+      "private": true
+    },
+    {
+      "id": "where",
+      "type": "text",
+      "label": { "it": "Dove è successo?", "en": "Where did it happen?" },
+      "private": true
+    },
+    {
+      "id": "people_involved",
+      "type": "long_text",
+      "label": { "it": "Persone coinvolte", "en": "People involved" },
+      "private": true
+    },
+    {
+      "id": "witnesses_evidence",
+      "type": "long_text",
+      "label": { "it": "Testimoni / Prove", "en": "Witnesses / Evidence" },
+      "private": true
+    },
+    {
+      "id": "previous_report",
+      "type": "choice",
+      "label": { "it": "Segnalazione precedente", "en": "Previous report" },
+      "private": true,
+      "options": [
+        { "value": "prima_volta", "label": { "it": "Prima segnalazione", "en": "First time reporting" } },
+        { "value": "interno", "label": { "it": "Già segnalato internamente", "en": "Previously reported internally" } },
+        { "value": "anac", "label": { "it": "Già segnalato ad ANAC", "en": "Previously reported to ANAC" } },
+        { "value": "autorita_giudiziaria", "label": { "it": "Già segnalato all'autorità giudiziaria", "en": "Previously reported to judicial authority" } }
+      ]
+    },
+    {
+      "id": "section_identity",
+      "type": "section",
+      "label": { "it": "Identità", "en": "Identity" },
+      "description": { "it": "Il D.Lgs. 24/2023 protegge la tua identità", "en": "D.Lgs. 24/2023 protects your identity" }
+    },
+    {
+      "id": "identity_revealed",
+      "type": "choice",
+      "label": { "it": "Vuoi rivelare la tua identità?", "en": "Do you want to reveal your identity?" },
+      "required": true,
+      "private": true,
+      "options": [
+        { "value": "yes", "label": { "it": "Sì, mi identifico", "en": "Yes, I identify myself" } },
+        { "value": "no", "label": { "it": "No, resto anonimo/a", "en": "No, I remain anonymous" } }
+      ]
+    },
+    {
+      "id": "identity_name",
+      "type": "text",
+      "label": { "it": "Nome completo", "en": "Full name" },
+      "private": true,
+      "showIf": { "field": "identity_revealed", "op": "eq", "value": "yes" }
+    },
+    {
+      "id": "identity_role",
+      "type": "text",
+      "label": { "it": "Ruolo / Posizione", "en": "Role / Position" },
+      "private": true,
+      "showIf": { "field": "identity_revealed", "op": "eq", "value": "yes" }
+    },
+    {
+      "id": "identity_contact",
+      "type": "text",
+      "label": { "it": "Recapito", "en": "Contact info" },
+      "private": true,
+      "showIf": { "field": "identity_revealed", "op": "eq", "value": "yes" }
+    },
+    {
+      "id": "anonymous_contact",
+      "type": "text",
+      "label": { "it": "Recapito anonimo (opzionale)", "en": "Anonymous contact (optional)" },
+      "description": { "it": "Un modo per l'OdV di raggiungerti senza conoscere la tua identità", "en": "A way for the OdV to reach you without knowing your identity" },
+      "private": true,
+      "showIf": { "field": "identity_revealed", "op": "eq", "value": "no" }
+    }
+  ]
+}

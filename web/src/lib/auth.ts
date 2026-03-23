@@ -13,7 +13,11 @@ export interface StoredUser {
   id: string;
   email: string;
   role: string;
-  orgId: string;
+  orgId: string | null;
+  canEditSurveys?: boolean;
+  canEditThemes?: boolean;
+  dataLevel?: number | null;
+  orgRoleName?: string | null;
 }
 
 export function getToken(): string | null {

@@ -7,12 +7,20 @@ const uuidPattern = z.string().regex(
 
 export const createInviteSchema = z.object({
   orgId: uuidPattern,
-  role: z.enum(["rpg", "odv"]),
+  role: z.enum(["rpg", "odv", "technical", "admin"]),
+  email: z.string().email().optional(),
+  orgRoleId: uuidPattern.optional(),
 });
 
 export const claimInviteSchema = z.object({
   publicKey: z.string().min(1),
 });
 
+export const registerViaInviteSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
 export type CreateInviteInput = z.infer<typeof createInviteSchema>;
 export type ClaimInviteInput = z.infer<typeof claimInviteSchema>;
+export type RegisterViaInviteInput = z.infer<typeof registerViaInviteSchema>;

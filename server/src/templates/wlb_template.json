@@ -1,0 +1,317 @@
+{
+  "_meta": {
+    "icon": "scale",
+    "catalogTitle": { "it": "Work-Life Balance e Benessere", "en": "Work-Life Balance and Wellbeing" },
+    "catalogDescription": { "it": "Sondaggio clima aziendale UNI/PdR 125:2022", "en": "UNI/PdR 125:2022 workplace climate survey" }
+  },
+  "title": {
+    "it": "Work-Life Balance, Benessere e Sviluppo Professionale",
+    "en": "Work-Life Balance, Wellbeing and Professional Development"
+  },
+  "description": {
+    "it": "Sondaggio anonimo sul bilanciamento tra vita lavorativa e personale, carico di lavoro, supporto aziendale e prevenzione di molestie e discriminazioni.",
+    "en": "Anonymous survey on work-life balance, workload, company support, and prevention of harassment and discrimination."
+  },
+  "buttonLabel": {
+    "it": "Compila sondaggio",
+    "en": "Fill survey"
+  },
+  "buttonDescription": {
+    "it": "UNI/PdR 125:2022 — Clima aziendale",
+    "en": "UNI/PdR 125:2022 — Workplace climate"
+  },
+  "questions": [
+    {
+      "id": "sec_flexibility",
+      "type": "section",
+      "label": {
+        "it": "Orari, Flessibilità e Sviluppo Professionale",
+        "en": "Working Hours, Flexibility and Professional Development"
+      }
+    },
+    {
+      "id": "q1_1",
+      "type": "choice",
+      "label": {
+        "it": "Senti di avere un buon livello di flessibilità negli orari di lavoro?",
+        "en": "Do you feel you have a good level of flexibility in your working hours?"
+      },
+      "required": true,
+      "options": [
+        { "value": "sufficient", "label": { "it": "Sì, è sufficiente", "en": "Yes, it's sufficient" } },
+        { "value": "insufficient", "label": { "it": "No, è insufficiente", "en": "No, it's insufficient" } }
+      ]
+    },
+    {
+      "id": "q1_2",
+      "type": "choice",
+      "label": {
+        "it": "Ritieni che l'azienda fornisca opportunità adeguate per lo sviluppo e il miglioramento delle tue competenze professionali?",
+        "en": "Do you feel the company provides adequate opportunities for developing and improving your professional skills?"
+      },
+      "required": true,
+      "options": [
+        { "value": "yes", "label": { "it": "Sì", "en": "Yes" } },
+        { "value": "somewhat", "label": { "it": "Abbastanza", "en": "Somewhat" } },
+        { "value": "not_at_all", "label": { "it": "Per niente", "en": "Not at all" } }
+      ]
+    },
+    {
+      "id": "q1_3",
+      "type": "choice",
+      "label": {
+        "it": "Hai avuto l'opportunità di partecipare a corsi di formazione o aggiornamento professionale nell'ultimo anno?",
+        "en": "Have you had the opportunity to participate in training or professional development courses in the last year?"
+      },
+      "required": true,
+      "options": [
+        { "value": "yes", "label": { "it": "Sì", "en": "Yes" } },
+        { "value": "no", "label": { "it": "No", "en": "No" } }
+      ]
+    },
+    {
+      "id": "sec_workload",
+      "type": "section",
+      "label": {
+        "it": "Carico di Lavoro",
+        "en": "Workload"
+      }
+    },
+    {
+      "id": "q2_1",
+      "type": "choice",
+      "label": {
+        "it": "Come valuti il carico di lavoro che ti viene assegnato?",
+        "en": "How do you rate the workload assigned to you?"
+      },
+      "required": true,
+      "options": [
+        { "value": "adequate", "label": { "it": "Adeguato", "en": "Adequate" } },
+        { "value": "sometimes_excessive", "label": { "it": "A volte eccessivo", "en": "Sometimes excessive" } },
+        { "value": "often_excessive", "label": { "it": "Spesso eccessivo", "en": "Often excessive" } }
+      ]
+    },
+    {
+      "id": "q2_2",
+      "type": "choice",
+      "label": {
+        "it": "Ti capita di dover lavorare oltre l'orario previsto?",
+        "en": "Do you find yourself working beyond your scheduled hours?"
+      },
+      "required": true,
+      "options": [
+        { "value": "often", "label": { "it": "Spesso", "en": "Often" } },
+        { "value": "sometimes", "label": { "it": "Qualche volta", "en": "Sometimes" } },
+        { "value": "never", "label": { "it": "Mai", "en": "Never" } }
+      ]
+    },
+    {
+      "id": "q2_3",
+      "type": "choice",
+      "label": {
+        "it": "Giudichi equilibrato il rapporto tra l'impegno richiesto e la tua retribuzione?",
+        "en": "Do you consider the balance between effort required and your compensation to be fair?"
+      },
+      "required": true,
+      "options": [
+        { "value": "yes", "label": { "it": "Sì", "en": "Yes" } },
+        { "value": "somewhat", "label": { "it": "Abbastanza", "en": "Somewhat" } },
+        { "value": "not_at_all", "label": { "it": "Per niente", "en": "Not at all" } }
+      ]
+    },
+    {
+      "id": "q2_4",
+      "type": "choice",
+      "label": {
+        "it": "Pensi di avere gli strumenti necessari e adeguate competenze per svolgere il tuo lavoro?",
+        "en": "Do you feel you have the necessary tools and adequate skills to do your job?"
+      },
+      "required": true,
+      "options": [
+        { "value": "yes", "label": { "it": "Sì", "en": "Yes" } },
+        { "value": "somewhat", "label": { "it": "Abbastanza", "en": "Somewhat" } },
+        { "value": "not_at_all", "label": { "it": "Per niente", "en": "Not at all" } }
+      ]
+    },
+    {
+      "id": "sec_balance",
+      "type": "section",
+      "label": {
+        "it": "Equilibrio Vita Lavorativa e Personale",
+        "en": "Work-Life Balance"
+      }
+    },
+    {
+      "id": "q3_1",
+      "type": "choice",
+      "label": {
+        "it": "Riesci a gestire in maniera equilibrata le esigenze lavorative e personali?",
+        "en": "Are you able to balance your work and personal needs?"
+      },
+      "required": true,
+      "options": [
+        { "value": "yes", "label": { "it": "Sì", "en": "Yes" } },
+        { "value": "somewhat", "label": { "it": "Abbastanza", "en": "Somewhat" } },
+        { "value": "not_at_all", "label": { "it": "Per niente", "en": "Not at all" } }
+      ]
+    },
+    {
+      "id": "q3_2",
+      "type": "choice",
+      "label": {
+        "it": "Il lavoro influisce negativamente sul tuo benessere personale e familiare?",
+        "en": "Does work negatively affect your personal and family wellbeing?"
+      },
+      "required": true,
+      "options": [
+        { "value": "never", "label": { "it": "Mai", "en": "Never" } },
+        { "value": "sometimes", "label": { "it": "Qualche volta", "en": "Sometimes" } },
+        { "value": "often", "label": { "it": "Spesso", "en": "Often" } }
+      ]
+    },
+    {
+      "id": "sec_support",
+      "type": "section",
+      "label": {
+        "it": "Supporto Aziendale",
+        "en": "Company Support"
+      }
+    },
+    {
+      "id": "q4_1",
+      "type": "choice",
+      "label": {
+        "it": "Ritieni che l'azienda offra supporto sufficiente per garantire un equilibrio tra vita privata e lavoro?",
+        "en": "Do you feel the company offers sufficient support to ensure a work-life balance?"
+      },
+      "required": true,
+      "options": [
+        { "value": "yes", "label": { "it": "Sì", "en": "Yes" } },
+        { "value": "somewhat", "label": { "it": "Abbastanza", "en": "Somewhat" } },
+        { "value": "not_at_all", "label": { "it": "Per niente", "en": "Not at all" } }
+      ]
+    },
+    {
+      "id": "q4_2",
+      "type": "choice",
+      "label": {
+        "it": "L'Organizzazione supporta a lavorare in gruppo e a collaborare?",
+        "en": "Does the organization support teamwork and collaboration?"
+      },
+      "required": true,
+      "options": [
+        { "value": "yes", "label": { "it": "Sì", "en": "Yes" } },
+        { "value": "somewhat", "label": { "it": "Abbastanza", "en": "Somewhat" } },
+        { "value": "not_at_all", "label": { "it": "Per niente", "en": "Not at all" } }
+      ]
+    },
+    {
+      "id": "sec_harassment",
+      "type": "section",
+      "label": {
+        "it": "Molestie, Discriminazione e Comportamenti Inappropriati",
+        "en": "Harassment, Discrimination and Inappropriate Behavior"
+      }
+    },
+    {
+      "id": "q5_1",
+      "type": "choice",
+      "label": {
+        "it": "Hai mai subito molestie fisiche o contatti indesiderati sul luogo di lavoro attuale?",
+        "en": "Have you ever experienced physical harassment or unwanted contact at your current workplace?"
+      },
+      "required": true,
+      "options": [
+        { "value": "never", "label": { "it": "Mai", "en": "Never" } },
+        { "value": "sometimes", "label": { "it": "Qualche volta", "en": "Sometimes" } },
+        { "value": "often", "label": { "it": "Spesso", "en": "Often" } }
+      ]
+    },
+    {
+      "id": "q5_2",
+      "type": "choice",
+      "label": {
+        "it": "Hai mai subito molestie verbali o linguaggi inappropriati (commenti offensivi, battute fuori luogo, insulti) in questo lavoro?",
+        "en": "Have you ever experienced verbal harassment or inappropriate language (offensive comments, inappropriate jokes, insults) at this job?"
+      },
+      "required": true,
+      "options": [
+        { "value": "never", "label": { "it": "Mai", "en": "Never" } },
+        { "value": "sometimes", "label": { "it": "Qualche volta", "en": "Sometimes" } },
+        { "value": "often", "label": { "it": "Spesso", "en": "Often" } }
+      ]
+    },
+    {
+      "id": "q5_3",
+      "type": "choice",
+      "label": {
+        "it": "Hai mai ricevuto messaggi digitali (e-mail, chat aziendali) con contenuti offensivi o inappropriati in questo lavoro?",
+        "en": "Have you ever received digital messages (email, company chat) with offensive or inappropriate content at this job?"
+      },
+      "required": true,
+      "options": [
+        { "value": "never", "label": { "it": "Mai", "en": "Never" } },
+        { "value": "sometimes", "label": { "it": "Qualche volta", "en": "Sometimes" } },
+        { "value": "often", "label": { "it": "Spesso", "en": "Often" } }
+      ]
+    },
+    {
+      "id": "q5_4",
+      "type": "choice",
+      "label": {
+        "it": "Hai mai subito discriminazioni in azienda basate su genere, età, razza, religione, orientamento sessuale, o altro in questo lavoro?",
+        "en": "Have you ever experienced discrimination at work based on gender, age, race, religion, sexual orientation, or other factors at this job?"
+      },
+      "required": true,
+      "options": [
+        { "value": "never", "label": { "it": "Mai", "en": "Never" } },
+        { "value": "sometimes", "label": { "it": "Qualche volta", "en": "Sometimes" } },
+        { "value": "often", "label": { "it": "Spesso", "en": "Often" } }
+      ]
+    },
+    {
+      "id": "q5_5",
+      "type": "choice",
+      "label": {
+        "it": "Hai mai notato o percepito favoritismi ingiustificati da parte di superiori o colleghi, ad esempio nella distribuzione dei compiti o nell'assegnazione di opportunità di crescita in questo lavoro?",
+        "en": "Have you ever noticed or perceived unjustified favoritism from superiors or colleagues, for example in task distribution or assignment of growth opportunities at this job?"
+      },
+      "required": true,
+      "options": [
+        { "value": "never", "label": { "it": "Mai", "en": "Never" } },
+        { "value": "sometimes", "label": { "it": "Qualche volta", "en": "Sometimes" } },
+        { "value": "often", "label": { "it": "Spesso", "en": "Often" } }
+      ]
+    },
+    {
+      "id": "q5_6",
+      "type": "choice",
+      "label": {
+        "it": "Sai a chi rivolgerti in caso di discriminazioni o molestie?",
+        "en": "Do you know who to contact in case of discrimination or harassment?"
+      },
+      "required": true,
+      "options": [
+        { "value": "yes", "label": { "it": "Sì", "en": "Yes" } },
+        { "value": "no", "label": { "it": "No", "en": "No" } }
+      ]
+    },
+    {
+      "id": "sec_comments",
+      "type": "section",
+      "label": {
+        "it": "Commenti e Suggerimenti",
+        "en": "Comments and Suggestions"
+      }
+    },
+    {
+      "id": "q6_1",
+      "type": "long_text",
+      "label": {
+        "it": "Hai suggerimenti o commenti su come l'azienda potrebbe migliorare il bilanciamento tra lavoro e vita privata, prevenire situazioni di disagio, discriminazione o molestie e favorire lo sviluppo professionale?",
+        "en": "Do you have any suggestions or comments on how the company could improve work-life balance, prevent situations of discomfort, discrimination or harassment, and promote professional development?"
+      },
+      "private": true
+    }
+  ]
+}
